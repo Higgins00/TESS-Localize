@@ -17,4 +17,4 @@ tutorial_example = dd.PixelMapFit(targetpixelfile=tpf, gaia=True, magnitude_limi
                                   frequencies=frequency_list, frequnit=u.uHz, principal_components = 3)
 ```
 
-![pca]()
+![pca](https://github.com/Higgins00/TESS-Localizer/blob/main/pca.png)

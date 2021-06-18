@@ -1,7 +1,17 @@
 # TESS-Localizer
 Code for localizing variable star signatures in TESS Photometry.
 
-The primary use of this package is to identify the location on the TPF where sources of variablity found in the aperture originate. The user must provide a list of frequencies found in the aperture that belong to the same source and the number of principal components to remove from the light curve to ensure it is free of systematic trends.
+The primary use of this package is to identify the location on the TPF where sources of variablity found in the aperture originate. The user only needs to provide a list of frequencies found in the aperture that belong to the same source and the number of principal components needed to be removed from the light curve to ensure it is free of systematic trends.
+
+## Installation 
+Clone this repository and run 
+```bash
+cd TESS_Localize
+pip install .
+```
+Soon to be installable from PyPI!
+
+## Usage
 
 ```python
 import Disentangler_Draft as dd
@@ -34,5 +44,7 @@ result:
 ```python
 tutorial_example.plot(save='Composite_Amplitude_Heatmap.png',figuresize=(8,8))
 ```
+result:
+
 
 ![Plot](https://github.com/Higgins00/TESS-Localizer/blob/main/Composite_Amplitude_Heatmap.png)

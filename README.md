@@ -16,7 +16,7 @@ tpf = search_result.download(quality_bitmask='default')
 tutorial_example = dd.PixelMapFit(targetpixelfile=tpf, gaia=True, magnitude_limit=18,
                                   frequencies=frequency_list, frequnit=u.uHz, principal_components = 3)
 ```
-### Useful Functions
+### Useful Functions:
 ```python
 tutorial_example.pca()
 ```
@@ -29,4 +29,10 @@ tutorial_example.info()
 ```
 result:
 
-![result1]
+![result1](https://github.com/Higgins00/TESS-Localizer/blob/main/result1.png)
+
+```python
+tutorial_example.plot(save='Composite_Amplitude_Heatmap.png',figuresize=(8,8))
+```
+
+![Plot](https://github.com/Higgins00/TESS-Localizer/blob/main/Composite_Amplitude_Heatmap.png)

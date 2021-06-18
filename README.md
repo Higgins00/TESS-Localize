@@ -1,4 +1,4 @@
-# TESS-Localizer
+# TESS-Localize
 Code for localizing variable star signatures in TESS Photometry.
 
 The primary use of this package is to identify the location on the TPF where sources of variablity found in the aperture originate. The user only needs to provide a list of frequencies found in the aperture that belong to the same source and the number of principal components needed to be removed from the light curve to ensure it is free of systematic trends.

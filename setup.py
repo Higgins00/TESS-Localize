@@ -5,13 +5,13 @@
 
 
 from setuptools import setup
-setup(name='Testing_Disentangler_Draft',
+setup(name='TESS_Localize',
 version='0.1',
-description='Testing of Package',
+description='Package for localizing variable stars in TESS Photometry',
 url='#',
-author='Michael Higgns',
-author_email='michael.higgins@duke.edi',
-license='MIT',
-packages=['Disentangler_Draft'],
+author='Michael Higgins',
+author_email='michael.higgins@duke.edu',
+license='GNU General Public License v3.0',
+packages=['TESS_Localize'],
 zip_safe=False)
 

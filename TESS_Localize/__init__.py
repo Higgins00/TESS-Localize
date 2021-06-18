@@ -20,5 +20,5 @@ import logging
 log = logging.getLogger(__name__)
 log.addHandler(logging.StreamHandler())
 
-from .Near_FinalDraft import *
+from .TESS_Localize import *
 

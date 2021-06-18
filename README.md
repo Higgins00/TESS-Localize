@@ -16,5 +16,17 @@ tpf = search_result.download(quality_bitmask='default')
 tutorial_example = dd.PixelMapFit(targetpixelfile=tpf, gaia=True, magnitude_limit=18,
                                   frequencies=frequency_list, frequnit=u.uHz, principal_components = 3)
 ```
+### Useful Functions
+```python
+tutorial_example.pca()
+```
+result:
 
 ![pca](https://github.com/Higgins00/TESS-Localizer/blob/main/pca.png)
+
+```python
+tutorial_example.info()
+```
+result:
+
+![result1]

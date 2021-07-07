@@ -1,0 +1,7 @@
+numpy>=1.11
+pandas>=1.0
+lightkurve>=2.0.10
+lmfit>=1.0
+matplotlib>=3.4
+astropy>=4.2.1
+TESS_PRF>=0.1.0

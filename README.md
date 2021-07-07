@@ -6,10 +6,10 @@ The primary use of this package is to identify the location on the TPF where sou
 ## Installation 
 
 To install use 
-```bash
-pip install TESS_Localize
-```
-Clone this repository and run 
+
+```pip install TESS_Localize```
+
+Or clone this repository and run 
 ```bash
 cd TESS_Localize
 pip install .

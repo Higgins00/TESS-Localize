@@ -4,12 +4,16 @@ Code for localizing variable star signatures in TESS Photometry.
 The primary use of this package is to identify the location on the TPF where sources of variablity found in the aperture originate. The user only needs to provide a list of frequencies found in the aperture that belong to the same source and the number of principal components needed to be removed from the light curve to ensure it is free of systematic trends.
 
 ## Installation 
+
+To install use 
+```bash
+pip install TESS_Localize
+```
 Clone this repository and run 
 ```bash
 cd TESS_Localize
 pip install .
 ```
-Soon to be installable from PyPI!
 
 ## Usage
 

@@ -82,14 +82,14 @@ class PixelMapFit:
         self.aperture = aperture
         if self.aperture is None:
             self.aperture = targetpixelfile.pipeline_mask
-            #if targetpixelfile.pipeline_mask.any() == False:
+            if targetpixelfile.pipeline_mask.any() == False:
                 #will add a flag here if no aperture
-        
+                self.aperture = self.tpf.create_threshold_mask()
     
         
         # Make a design matrix and pass it to a linear regression corrector
         self.raw_lc = self.tpf.to_lightcurve(aperture_mask=self.aperture)
-        self.dm = lk.DesignMatrix(self.tpf.flux[:, ~self.tpf.create_threshold_mask()], name='regressors').pca(principal_components)
+        self.dm = lk.DesignMatrix(self.tpf.flux[:, ~self.aperture], name='regressors').pca(principal_components)
         rc = lk.RegressionCorrector(self.raw_lc)
         corrected_lc = rc.correct(self.dm.append_constant())
         corrected_lc[np.where(corrected_lc.quality == 0)]
@@ -170,7 +170,7 @@ class PixelMapFit:
 
             params = model.make_params()
 
-            result = model.fit(corrected_lc.flux.value,params,time=times)
+            result = model.fit(corrected_lc.flux.value,params,time=times,weights=corrected_lc.flux_err.value)
             
             final_phases = [result.best_values['f{0:d}phase'.format(j)] for j in np.arange(len(frequency_list))]
 
@@ -210,7 +210,7 @@ class PixelMapFit:
 
             params = model.make_params()
 
-            result = model.fit(corrected_lc.flux.value,params,time=times)
+            result = model.fit(corrected_lc.flux.value,params,time=times,weights=corrected_lc.flux_err.value)
             
             return result
         
@@ -309,6 +309,7 @@ class PixelMapFit:
                 self.heatmap_error = heats_error
                 self.size = tpf.pipeline_mask.shape
                 self.frequencies= frequencies
+                self.tpf = tpf
             def location(self):
                 
                 #Residuals to minimize relative to the error bars
@@ -316,15 +317,16 @@ class PixelMapFit:
 
                     x = params['x']
                     y = params['y']
-                    sigma = params['sigma']
-
+                    #sigma = params['sigma']
+                    prf = PRF.TESS_PRF(cam = self.tpf.camera, ccd = self.tpf.ccd,
+                                           sector = self.tpf.sector, colnum = self.tpf.column,
+                                           rownum = self.tpf.row, localdatadir=None)
 
 
                     res = []
                     for i in np.arange(len(frequencies)):
                         height = params['height{0:d}'.format(i)]
-
-                        prf = PRF.Gaussian_PRF(sigma)
+                        #prf = PRF.Gaussian_PRF(sigma)
                         model = height*prf.locate(x+.5, y+.5, (self.size[0],self.size[1]))
 
                         res.extend( [(amp[i].reshape(self.size)-model) / amperr[i].reshape(self.size)])
@@ -345,7 +347,7 @@ class PixelMapFit:
                     params.add('height{0:d}'.format(i), value=np.max(self.heat_stamp[i]))
                 params.add('x', value=c[1][0])#c[0]) 
                 params.add('y', value=c[0][0])#c[1])
-                params.add('sigma', value=1)
+                #params.add('sigma', value=1)
 
                 
                 #Do the fit

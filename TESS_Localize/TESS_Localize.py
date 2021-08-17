@@ -90,6 +90,10 @@ class PixelMapFit:
         # Make a design matrix and pass it to a linear regression corrector
         self.raw_lc = self.tpf.to_lightcurve(aperture_mask=self.aperture)
         self.dm = lk.DesignMatrix(self.tpf.flux[:, ~self.aperture], name='regressors').pca(principal_components)
+        
+        #fixing bug where PCA cant occur if there is a nan in flux_err
+        self.raw_lc['flux_err'][np.isnan(self.raw_lc['flux_err'].value)]=np.nanmean(self.raw_lc['flux_err'])
+        
         rc = lk.RegressionCorrector(self.raw_lc)
         corrected_lc = rc.correct(self.dm.append_constant())
         corrected_lc[np.where(corrected_lc.quality == 0)]
@@ -232,6 +236,10 @@ class PixelMapFit:
                 
                 #Getting the light curve for a pixel and excluding any flagged data
                 lightcurve = self.tpf.to_lightcurve(aperture_mask=mask)
+                
+                #fixing bug where PCA cant occur if there is a nan in flux_err
+                lightcurve['flux_err'][np.isnan(lightcurve['flux_err'].value)]=np.nanmean(lightcurve['flux_err'])
+                
                 rcc = lk.RegressionCorrector(lightcurve)
                 lc = rcc.correct(self.dm.append_constant())
                               

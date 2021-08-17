@@ -311,18 +311,16 @@ class PixelMapFit:
                 self.frequencies= frequencies
                 self.tpf = tpf
             def location(self):
+                self.prf = PRF.TESS_PRF(cam = self.tpf.camera, ccd = self.tpf.ccd,
+                                    sector = self.tpf.sector, colnum = self.tpf.column,
+                                    rownum = self.tpf.row, localdatadir=None)
                 
                 #Residuals to minimize relative to the error bars
-                def residual(params, amp, amperr):
+                def residual(params, amp, amperr, prf):
 
                     x = params['x']
                     y = params['y']
-                    #sigma = params['sigma']
-                    prf = PRF.TESS_PRF(cam = self.tpf.camera, ccd = self.tpf.ccd,
-                                           sector = self.tpf.sector, colnum = self.tpf.column,
-                                           rownum = self.tpf.row, localdatadir=None)
-
-
+                    
                     res = []
                     for i in np.arange(len(frequencies)):
                         height = params['height{0:d}'.format(i)]
@@ -351,7 +349,7 @@ class PixelMapFit:
 
                 
                 #Do the fit
-                minner = Minimizer(residual, params, fcn_args=(self.heat_stamp, self.heatmap_error))
+                minner = Minimizer(residual, params, fcn_args=(self.heat_stamp, self.heatmap_error, self.prf))
                 self.result = minner.minimize()
                 fit = self.result.params.valuesdict()
                 self.x = fit['x']

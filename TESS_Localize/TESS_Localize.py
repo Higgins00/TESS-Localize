@@ -75,7 +75,7 @@ class PixelMapFit:
     
     def __init__(self, targetpixelfile, gaia=True, magnitude_limit=18, 
                  frequencies=[], frequnit=u.uHz, principal_components = 5, 
-                 aperture=None):
+                 aperture=None, **kwargs):
         
         self.tpf = targetpixelfile
         #Defining an aperture that will be used in plotting and making empty 2-d arrays of the correct size for masks
@@ -321,7 +321,7 @@ class PixelMapFit:
             def location(self):
                 self.prf = PRF.TESS_PRF(cam = self.tpf.camera, ccd = self.tpf.ccd,
                                     sector = self.tpf.sector, colnum = self.tpf.column,
-                                    rownum = self.tpf.row, localdatadir=None)
+                                    rownum = self.tpf.row, **kwargs)
                 
                 #Residuals to minimize relative to the error bars
                 def residual(params, amp, amperr, prf):

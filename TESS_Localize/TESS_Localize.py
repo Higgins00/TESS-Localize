@@ -88,15 +88,14 @@ class PixelMapFit:
     
         
         # Make a design matrix and pass it to a linear regression corrector
-        self.raw_lc = self.tpf.to_lightcurve(aperture_mask=self.aperture)
-        self.dm = lk.DesignMatrix(tpf.flux[:,~tpf.pipeline_mask][~np.isnan(self.raw_lc['flux']),:], name='regressors').pca(principal_components)
+        self.raw_lc1 = self.tpf.to_lightcurve(aperture_mask=self.aperture)
+        self.quality_mask = [np.isfinite(self.raw_lc1['flux']*self.raw_lc1['flux_err'])]
+        self.dm = lk.DesignMatrix(self.tpf.flux[:,~self.tpf.pipeline_mask][np.isfinite(self.raw_lc1['flux']*self.raw_lc1['flux_err']),:][np.where(self.raw_lc1[self.quality_mask[0]].quality ==0)[0],:], name='regressors').pca(principal_components)#setting nans to 0 to avoid a issue where design matrix won't work
+        self.raw_lc = self.raw_lc1[self.quality_mask[0]]
+        self.raw_lc = self.raw_lc[np.where(self.raw_lc1[self.quality_mask[0]].quality ==0)]
         
-        #fixing bug where PCA cant occur if there is a nan in flux_err
-        self.raw_lc['flux_err'][np.isnan(self.raw_lc['flux_err'].value)]=np.nanmean(self.raw_lc['flux_err'])
-        
-        rc = lk.RegressionCorrector(self.raw_lc.remove_nans())
+        rc = lk.RegressionCorrector(self.raw_lc)
         corrected_lc = rc.correct(self.dm.append_constant())
-        corrected_lc[np.where(corrected_lc.quality == 0)]
         self.corrected_lc = corrected_lc.remove_outliers()
         self.frequency_list = np.asarray((frequencies*frequnit).to(1/u.d))
         self.principal_components = principal_components
@@ -236,12 +235,14 @@ class PixelMapFit:
                 
                 #Getting the light curve for a pixel and excluding any flagged data
                 lightcurve = self.tpf.to_lightcurve(aperture_mask=mask)
+                lightcurve = lightcurve[self.quality_mask[0]]
+                lightcurve = lightcurve[np.where(self.raw_lc1[self.quality_mask[0]].quality ==0)]
+
+
                 
-                #fixing bug where PCA cant occur if there is a nan in flux_err
-                lightcurve['flux_err'][np.isnan(lightcurve['flux_err'].value)]=np.nanmean(lightcurve['flux_err'])
-                
-                rcc = lk.RegressionCorrector(lightcurve.remove_nans())
+                rcc = lk.RegressionCorrector(lightcurve)
                 lc = rcc.correct(self.dm.append_constant())
+                lc = lc.remove_outliers()
                               
                 bestfit = Obtain_Final_Fit(self.tpf,lc,self.frequency_list,self.final_phases)
                 heat = np.asarray([bestfit.best_values['f{0:d}amp'.format(n)] for n in np.arange(len(self.frequency_list))])
@@ -409,7 +410,7 @@ class PixelMapFit:
     
     def pca(self):
         plt.figure(figsize=(12,5))
-        plt.plot(self.tpf.time.value, self.dm.values + np.arange(self.principal_components)*0.2)
+        plt.plot(self.tpf.time.value[self.quality_mask[0]][np.where(self.raw_lc1[self.quality_mask[0]].quality ==0)], self.dm.values + np.arange(self.principal_components)*0.2)
         plt.title('Principal Components Contributions')
         plt.xlabel('Offset')
         g2 = self.raw_lc.plot(label='Raw light curve')

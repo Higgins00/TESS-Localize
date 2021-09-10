@@ -173,7 +173,7 @@ class PixelMapFit:
 
             params = model.make_params()
 
-            result = model.fit(corrected_lc.flux.value,params,time=times,weights=corrected_lc.flux_err.value)
+            result = model.fit(corrected_lc.flux.value,params,time=times,weights=1/corrected_lc.flux_err.value)
             
             final_phases = [result.best_values['f{0:d}phase'.format(j)] for j in np.arange(len(frequency_list))]
 
@@ -213,7 +213,7 @@ class PixelMapFit:
 
             params = model.make_params()
 
-            result = model.fit(corrected_lc.flux.value,params,time=times,weights=corrected_lc.flux_err.value)
+            result = model.fit(corrected_lc.flux.value,params,time=times,weights=1/corrected_lc.flux_err.value)
             
             return result
         
@@ -405,8 +405,8 @@ class PixelMapFit:
         plt.xlim(-.5,self.aperture.shape[1]-1+.5)
         plt.ylim(-.5,self.aperture.shape[0]-1+.5)
         report_fit(self.result)
-        if (np.asarray([self.result.params['height{0:d}'.format(j)].stderr for j in np.arange(len(self.frequency_list))]) / np.asarray([self.result.params['height{0:d}'.format(j)].value for j in np.arange(len(self.frequency_list))])).any() >.2:
-            Warning('Frequencies used may not all belong to the same source and provided fit could be unreliable')
+        if (np.asarray([self.result.params['height{0:d}'.format(j)].stderr for j in np.arange(len(self.frequency_list))]) / np.asarray([self.result.params['height{0:d}'.format(j)].value for j in np.arange(len(self.frequency_list))])>.2).any():
+            warnings.warn('Frequencies used may not all belong to the same source and provided fit could be unreliable')
     
     def pca(self):
         plt.figure(figsize=(12,5))

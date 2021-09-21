@@ -75,9 +75,10 @@ class PixelMapFit:
     
     def __init__(self, targetpixelfile, gaia=True, magnitude_limit=18, 
                  frequencies=[], frequnit=u.uHz, principal_components = 5, 
-                 aperture=None, **kwargs):
+                 aperture=None, method = 'Gaussian', **kwargs):
         
         self.tpf = targetpixelfile
+        self.method = method
         #Defining an aperture that will be used in plotting and making empty 2-d arrays of the correct size for masks
         self.aperture = aperture
         if self.aperture is None:
@@ -312,51 +313,89 @@ class PixelMapFit:
             self.gaiadata = source
         class frequency_heatmap:
 
-            def __init__(self,tpf,heats,heats_error,frequencies,gaia_data):
+            def __init__(self,tpf,heats,heats_error,frequencies,gaia_data,method):
                 self.heat_stamp = heats
                 self.gaiadata=gaia_data
                 self.heatmap_error = heats_error
                 self.size = tpf.pipeline_mask.shape
                 self.frequencies= frequencies
                 self.tpf = tpf
+                self.method = method
             def location(self):
-                self.prf = PRF.TESS_PRF(cam = self.tpf.camera, ccd = self.tpf.ccd,
-                                    sector = self.tpf.sector, colnum = self.tpf.column,
-                                    rownum = self.tpf.row, **kwargs)
                 
-                #Residuals to minimize relative to the error bars
-                def residual(params, amp, amperr, prf):
-
-                    x = params['x']
-                    y = params['y']
+                if self.method == 'PRF':
                     
-                    res = []
-                    for i in np.arange(len(frequencies)):
-                        height = params['height{0:d}'.format(i)]
-                        #prf = PRF.Gaussian_PRF(sigma)
-                        model = height*prf.locate(x+.5, y+.5, (self.size[0],self.size[1]))
+                    self.prf = PRF.TESS_PRF(cam = self.tpf.camera, ccd = self.tpf.ccd,
+                                        sector = self.tpf.sector, colnum = self.tpf.column,
+                                        rownum = self.tpf.row, **kwargs)
+                    #self.prf = PRF.Gaussian_PRF(sigma)
 
-                        res.extend( [(amp[i].reshape(self.size)-model) / amperr[i].reshape(self.size)])
+                    #Residuals to minimize relative to the error bars
+                    def residual(params, amp, amperr, prf):
+
+                        x = params['x']
+                        y = params['y']
+
+                        res = []
+                        for i in np.arange(len(frequencies)):
+                            height = params['height{0:d}'.format(i)]
+                            model = height*self.prf.locate(x+.5, y+.5, (self.size[0],self.size[1]))
+
+                            res.extend( [(amp[i].reshape(self.size)-model) / amperr[i].reshape(self.size)])
 
 
-                    return np.asarray(res)
+                        return np.asarray(res)
 
-                #Set starting values to converge from
-                self.heatmap_error[np.where(self.heatmap_error==None)]=np.nan
-                self.heatmap_error[np.where(self.heatmap_error==0)]=np.nan
-                #reshaping composite heatmap for user to plot
-                composite_heatmap = self.heat_stamp.sum(axis=0).reshape(self.size) / ((np.nansum(self.heatmap_error**2,axis=0))**(1/2)).reshape(self.size)#issue with numpy using sqrt?
-                c = np.where(composite_heatmap==composite_heatmap.max())
+                    #Set starting values to converge from
+                    self.heatmap_error[np.where(self.heatmap_error==None)]=np.nan
+                    self.heatmap_error[np.where(self.heatmap_error==0)]=np.nan
+                    #reshaping composite heatmap for user to plot
+                    composite_heatmap = self.heat_stamp.sum(axis=0).reshape(self.size) / ((np.nansum(self.heatmap_error**2,axis=0))**(1/2)).reshape(self.size)#issue with numpy using sqrt?
+                    c = np.where(composite_heatmap==composite_heatmap.max())
 
 
-                params = Parameters()
-                for i in np.arange(len(frequencies)):#
-                    params.add('height{0:d}'.format(i), value=np.max(self.heat_stamp[i]))
-                params.add('x', value=c[1][0])#c[0]) 
-                params.add('y', value=c[0][0])#c[1])
-                #params.add('sigma', value=1)
+                    params = Parameters()
+                    for i in np.arange(len(frequencies)):#
+                        params.add('height{0:d}'.format(i), value=np.max(self.heat_stamp[i]))
+                    params.add('x', value=c[1][0])#c[0]) 
+                    params.add('y', value=c[0][0])#c[1])
+                    #params.add('sigma', value=1)
+                else:
+                    self.prf = PRF.Gaussian_PRF(sigma)
 
-                
+                    #Residuals to minimize relative to the error bars
+                    def residual(params, amp, amperr, prf):
+
+                        x = params['x']
+                        y = params['y']
+                        sigma = params['sigma']
+                        
+                        res = []
+                        for i in np.arange(len(frequencies)):
+                            height = params['height{0:d}'.format(i)]
+                            model = height*self.prf.locate(x+.5, y+.5, (self.size[0],self.size[1]))
+
+                            res.extend( [(amp[i].reshape(self.size)-model) / amperr[i].reshape(self.size)])
+
+
+                        return np.asarray(res)
+
+                    #Set starting values to converge from
+                    self.heatmap_error[np.where(self.heatmap_error==None)]=np.nan
+                    self.heatmap_error[np.where(self.heatmap_error==0)]=np.nan
+                    #reshaping composite heatmap for user to plot
+                    composite_heatmap = self.heat_stamp.sum(axis=0).reshape(self.size) / ((np.nansum(self.heatmap_error**2,axis=0))**(1/2)).reshape(self.size)#issue with numpy using sqrt?
+                    c = np.where(composite_heatmap==composite_heatmap.max())
+
+
+                    params = Parameters()
+                    for i in np.arange(len(frequencies)):#
+                        params.add('height{0:d}'.format(i), value=np.max(self.heat_stamp[i]))
+                    params.add('x', value=c[1][0])#c[0]) 
+                    params.add('y', value=c[0][0])#c[1])
+                    params.add('sigma', value=1)
+                    
+                    
                 #Do the fit
                 minner = Minimizer(residual, params, fcn_args=(self.heat_stamp, self.heatmap_error, self.prf))
                 self.result = minner.minimize()
@@ -385,7 +424,7 @@ class PixelMapFit:
                     starlist = pd.DataFrame.from_dict(stars)
                     self.stars = starlist.sort_values(by=[r'distance'])
                     
-        fh = frequency_heatmap(self.tpf,self.heatmap,self.heatmap_error,self.frequency_list,self.gaiadata) 
+        fh = frequency_heatmap(self.tpf,self.heatmap,self.heatmap_error,self.frequency_list,self.gaiadata,self.method) 
         fh.location()
         self.location = [fh.x,fh.y]
         self.heatmap = self.heatmap.sum(axis=0).reshape(self.aperture.shape[0],self.aperture.shape[1]) / np.sqrt((self.heatmap_error**2).sum(axis=0)).reshape(self.aperture.shape[0],self.aperture.shape[1])

@@ -427,7 +427,7 @@ class PixelMapFit:
         fh = frequency_heatmap(self.tpf,self.heats,self.heats_error,self.frequency_list,self.gaiadata,self.method) 
         fh.location()
         self.location = [fh.x,fh.y]
-        self.heatmap = self.heatmap.sum(axis=0).reshape(self.aperture.shape[0],self.aperture.shape[1]) / np.sqrt((self.heatmap_error**2).sum(axis=0)).reshape(self.aperture.shape[0],self.aperture.shape[1])
+        self.heatmap = self.heats.sum(axis=0).reshape(self.aperture.shape[0],self.aperture.shape[1]) / np.sqrt((self.heats_error**2).sum(axis=0)).reshape(self.aperture.shape[0],self.aperture.shape[1])
         self.result = fh.result
         if (self.gaiadata !=None):
             fh.star_list()

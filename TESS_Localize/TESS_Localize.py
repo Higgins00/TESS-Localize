@@ -337,9 +337,10 @@ class PixelMapFit:
                         y = params['y']
 
                         res = []
+                        localprf = self.prf.locate(x+.5, y+.5, (self.size[0],self.size[1]))
                         for i in np.arange(len(frequencies)):
                             height = params['height{0:d}'.format(i)]
-                            model = height*self.prf.locate(x+.5, y+.5, (self.size[0],self.size[1]))
+                            model = height*localprf
 
                             res.extend( [(amp[i].reshape(self.size)-model) / amperr[i].reshape(self.size)])
 

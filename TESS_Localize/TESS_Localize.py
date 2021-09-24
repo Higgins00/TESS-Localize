@@ -255,8 +255,8 @@ class PixelMapFit:
                     
         heats = np.asarray(heats)
         heats_error = np.asarray(heats_error)
-        self.heatmap = heats.T
-        self.heatmap_error = heats_error.T
+        self.heats = heats.T
+        self.heats_error = heats_error.T
         self.timeserieslength = (self.tpf.time.max()-self.tpf.time.min()).value
         self.gaiadata = None
         
@@ -424,7 +424,7 @@ class PixelMapFit:
                     starlist = pd.DataFrame.from_dict(stars)
                     self.stars = starlist.sort_values(by=[r'distance'])
                     
-        fh = frequency_heatmap(self.tpf,self.heatmap,self.heatmap_error,self.frequency_list,self.gaiadata,self.method) 
+        fh = frequency_heatmap(self.tpf,self.heats,self.heats_error,self.frequency_list,self.gaiadata,self.method) 
         fh.location()
         self.location = [fh.x,fh.y]
         self.heatmap = self.heatmap.sum(axis=0).reshape(self.aperture.shape[0],self.aperture.shape[1]) / np.sqrt((self.heatmap_error**2).sum(axis=0)).reshape(self.aperture.shape[0],self.aperture.shape[1])

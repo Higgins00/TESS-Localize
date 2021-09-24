@@ -75,7 +75,7 @@ class PixelMapFit:
     
     def __init__(self, targetpixelfile, gaia=True, magnitude_limit=18, 
                  frequencies=[], frequnit=u.uHz, principal_components = 5, 
-                 aperture=None, method = 'Gaussian', **kwargs):
+                 aperture=None, method = 'Gaussian', sigma=None, **kwargs):
         
         self.tpf = targetpixelfile
         self.method = method
@@ -364,14 +364,18 @@ class PixelMapFit:
                     params.add('y', value=c[0][0])#c[1])
                     #params.add('sigma', value=1)
                 else:
-                    self.prf = PRF.Gaussian_PRF(sigma)
+                    if sigma is None:
+                        self.sigma=0.8
+                    else:
+                        self.sigma = sigma
+                    self.prf = PRF.Gaussian_PRF(self.sigma)
 
                     #Residuals to minimize relative to the error bars
                     def residual(params, amp, amperr, prf):
 
                         x = params['x']
                         y = params['y']
-                        sigma = params['sigma']
+                        #sigma = params['sigma'] #KJB removed
                         
                         res = []
                         for i in np.arange(len(frequencies)):
@@ -396,7 +400,7 @@ class PixelMapFit:
                         params.add('height{0:d}'.format(i), value=np.max(self.heat_stamp[i]))
                     params.add('x', value=c[1][0])#c[0]) 
                     params.add('y', value=c[0][0])#c[1])
-                    params.add('sigma', value=1)
+                    #params.add('sigma', value=1)        # KJB: not fitted
                     
                     
                 #Do the fit

@@ -326,8 +326,10 @@ class PixelMapFit:
                 if self.method == 'PRF':
                     
                     self.prf = PRF.TESS_PRF(cam = self.tpf.camera, ccd = self.tpf.ccd,
-                                        sector = self.tpf.sector, colnum = self.tpf.column,
-                                        rownum = self.tpf.row, **kwargs)
+                                        sector = self.tpf.sector, 
+                                        colnum = self.tpf.column+self.size[0]/2.,
+                                        rownum = self.tpf.row+self.size[1]/2., 
+                                        **kwargs)
                     #self.prf = PRF.Gaussian_PRF(sigma)
 
                     #Residuals to minimize relative to the error bars

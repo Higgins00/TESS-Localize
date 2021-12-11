@@ -14,6 +14,8 @@ from astropy import units as u
 import lmfit as lm
 from lmfit import Minimizer, Parameters, report_fit
 import PRF
+import sys
+
 
 
 class PixelMapFit:
@@ -75,12 +77,41 @@ class PixelMapFit:
     
     def __init__(self, targetpixelfile, gaia=True, magnitude_limit=18, 
                  frequencies=[], frequnit=u.uHz, principal_components = 5, 
-                 aperture=None, method = 'Gaussian', sigma=None, **kwargs):
+                 aperture=None, method = 'PRF', sigma=None,pca_only = False, **kwargs):
         
         self.tpf = targetpixelfile
         self.method = method
         #Defining an aperture that will be used in plotting and making empty 2-d arrays of the correct size for masks
         self.aperture = aperture
+        self.pca_only = pca_only
+        self.principal_components = principal_components
+        self.frequency_list = np.asarray((frequencies*frequnit).to(1/u.d))
+        if self.pca_only == True:
+            self.raw_lc1 = self.tpf.to_lightcurve(aperture_mask=self.aperture)
+            self.quality_mask = [np.isfinite(self.raw_lc1['flux']*self.raw_lc1['flux_err'])]
+            if principal_components !=0:
+                self.dm = lk.DesignMatrix(self.tpf.flux[:,~self.tpf.pipeline_mask][np.isfinite(self.raw_lc1['flux']*self.raw_lc1['flux_err']),:][np.where(self.raw_lc1[self.quality_mask[0]].quality ==0)[0],:], name='regressors').pca(principal_components)
+                self.raw_lc = self.raw_lc1[self.quality_mask[0]]
+                self.raw_lc = self.raw_lc[np.where(self.raw_lc1[self.quality_mask[0]].quality ==0)]
+
+                rc = lk.RegressionCorrector(self.raw_lc)
+                self.corrected_lc = rc.correct(self.dm.append_constant())
+                pgs = [lk.LightCurve(time = self.tpf.time.value[self.quality_mask[0]][np.where(self.raw_lc1[self.quality_mask[0]].quality ==0)],flux =self.dm.values.T[i]).to_periodogram() for i in np.arange(0,len(self.dm.values.T))]
+                fig,ax = plt.subplots(1,2,figsize=(14,5),sharey=True)
+                ax[0].plot(self.tpf.time.value[self.quality_mask[0]][np.where(self.raw_lc1[self.quality_mask[0]].quality ==0)], self.dm.values*1 + np.arange(self.principal_components)*0.2)
+                ax[0].set_title(r'Principal Components Contributions')
+                ax[0].set_xlabel('Offset')
+                ax[1].plot(pgs[0].frequency.value,np.array([pgs[i].power.value*10+np.arange(self.principal_components)[i]*0.2 for i in range(len(pgs))]).T)
+                ax[1].set_xlim(self.frequency_list.min(),self.frequency_list.max())
+                for i in np.arange(0,len(self.frequency_list)):
+                    ax[1].axvline(x = self.frequency_list[i],color='r',linestyle='--',linewidth=1)
+                g2 = self.raw_lc.plot(label='Raw light curve')
+                self.corrected_lc.plot(ax=g2, label='Corrected light curve')
+                sys.exit()
+                
+            else:
+                sys.exit()
+            
         if self.aperture is None:
             self.aperture = targetpixelfile.pipeline_mask
             if targetpixelfile.pipeline_mask.any() == False:
@@ -91,15 +122,21 @@ class PixelMapFit:
         # Make a design matrix and pass it to a linear regression corrector
         self.raw_lc1 = self.tpf.to_lightcurve(aperture_mask=self.aperture)
         self.quality_mask = [np.isfinite(self.raw_lc1['flux']*self.raw_lc1['flux_err'])]
-        self.dm = lk.DesignMatrix(self.tpf.flux[:,~self.tpf.pipeline_mask][np.isfinite(self.raw_lc1['flux']*self.raw_lc1['flux_err']),:][np.where(self.raw_lc1[self.quality_mask[0]].quality ==0)[0],:], name='regressors').pca(principal_components)#setting nans to 0 to avoid a issue where design matrix won't work
-        self.raw_lc = self.raw_lc1[self.quality_mask[0]]
-        self.raw_lc = self.raw_lc[np.where(self.raw_lc1[self.quality_mask[0]].quality ==0)]
+        if principal_components !=0:
+            self.dm = lk.DesignMatrix(self.tpf.flux[:,~self.tpf.pipeline_mask][np.isfinite(self.raw_lc1['flux']*self.raw_lc1['flux_err']),:][np.where(self.raw_lc1[self.quality_mask[0]].quality ==0)[0],:], name='regressors').pca(principal_components)
+            self.raw_lc = self.raw_lc1[self.quality_mask[0]]
+            self.raw_lc = self.raw_lc[np.where(self.raw_lc1[self.quality_mask[0]].quality ==0)]
         
-        rc = lk.RegressionCorrector(self.raw_lc)
-        corrected_lc = rc.correct(self.dm.append_constant())
-        self.corrected_lc = corrected_lc.remove_outliers()
-        self.frequency_list = np.asarray((frequencies*frequnit).to(1/u.d))
-        self.principal_components = principal_components
+            rc = lk.RegressionCorrector(self.raw_lc)
+            self.corrected_lc = rc.correct(self.dm.append_constant())
+        else:
+            self.raw_lc = self.raw_lc1[self.quality_mask[0]]
+            self.raw_lc = self.raw_lc[np.where(self.raw_lc1[self.quality_mask[0]].quality ==0)]
+            self.corrected_lc = self.raw_lc
+            
+        #self.corrected_lc = corrected_lc.remove_outliers()
+        
+        
         
         def Obtain_Initial_Phase(tpf,corrected_lc,frequency_list):
 
@@ -240,10 +277,12 @@ class PixelMapFit:
                 lightcurve = lightcurve[np.where(self.raw_lc1[self.quality_mask[0]].quality ==0)]
 
 
-                
-                rcc = lk.RegressionCorrector(lightcurve)
-                lc = rcc.correct(self.dm.append_constant())
-                lc = lc.remove_outliers()
+                if principal_components !=0:
+                    rcc = lk.RegressionCorrector(lightcurve)
+                    lc = rcc.correct(self.dm.append_constant())
+                else:
+                    lc=lightcurve
+                #lc = lc.remove_outliers()
                               
                 bestfit = Obtain_Final_Fit(self.tpf,lc,self.frequency_list,self.final_phases)
                 heat = np.asarray([bestfit.best_values['f{0:d}amp'.format(n)] for n in np.arange(len(self.frequency_list))])
@@ -339,7 +378,7 @@ class PixelMapFit:
                         y = params['y']
 
                         res = []
-                        localprf = self.prf.locate(x+.5, y+.5, (self.size[0],self.size[1]))
+                        localprf = self.prf.locate(x, y, (self.size[0],self.size[1]))
                         for i in np.arange(len(frequencies)):
                             height = params['height{0:d}'.format(i)]
                             model = height*localprf
@@ -380,7 +419,7 @@ class PixelMapFit:
                         res = []
                         for i in np.arange(len(frequencies)):
                             height = params['height{0:d}'.format(i)]
-                            model = height*self.prf.locate(x+.5, y+.5, (self.size[0],self.size[1]))
+                            model = height*self.prf.locate(x, y, (self.size[0],self.size[1]))
 
                             res.extend( [(amp[i].reshape(self.size)-model) / amperr[i].reshape(self.size)])
 
@@ -455,14 +494,20 @@ class PixelMapFit:
             warnings.warn('Frequencies used may not all belong to the same source and provided fit could be unreliable')
     
     def pca(self):
-        plt.figure(figsize=(12,5))
-        plt.plot(self.tpf.time.value[self.quality_mask[0]][np.where(self.raw_lc1[self.quality_mask[0]].quality ==0)], self.dm.values + np.arange(self.principal_components)*0.2)
-        plt.title('Principal Components Contributions')
-        plt.xlabel('Offset')
-        g2 = self.raw_lc.plot(label='Raw light curve')
-        self.corrected_lc.plot(ax=g2, label='Corrected light curve')
-
-        plt.show()
+        if self.principal_components==0:
+            pass
+        else:
+            pgs = [lk.LightCurve(time = self.tpf.time.value[self.quality_mask[0]][np.where(self.raw_lc1[self.quality_mask[0]].quality ==0)],flux =self.dm.values.T[i]).to_periodogram() for i in np.arange(0,len(self.dm.values.T))]
+            fig,ax = plt.subplots(1,2,figsize=(14,5),sharey=True)
+            ax[0].plot(self.tpf.time.value[self.quality_mask[0]][np.where(self.raw_lc1[self.quality_mask[0]].quality ==0)], self.dm.values*1 + np.arange(self.principal_components)*0.2)
+            ax[0].set_title(r'Principal Components Contributions')
+            ax[0].set_xlabel('Offset')
+            ax[1].plot(pgs[0].frequency.value,np.array([pgs[i].power.value*10+np.arange(self.principal_components)[i]*0.2 for i in range(len(pgs))]).T)
+            ax[1].set_xlim(self.frequency_list.min(),self.frequency_list.max())
+            for i in np.arange(0,len(self.frequency_list)):
+                ax[1].axvline(x = self.frequency_list[i],color='r',linestyle='--',linewidth=1)
+            g2 = self.raw_lc.plot(label='Raw light curve')
+            self.corrected_lc.plot(ax=g2, label='Corrected light curve')
 
     def plot(self,save = None,figuresize = (10,10)):
         plt.figure(figsize = (figuresize))

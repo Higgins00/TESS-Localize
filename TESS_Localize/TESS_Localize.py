@@ -173,7 +173,6 @@ class PixelMapFit:
 
             return initial_phase
 
-self.initial_phases = Obtain_Initial_Phase(self.tpf,self.corrected_lc,self.frequency_list)
 
 #             flux = corrected_lc.flux.value
 #             times = corrected_lc.time.value - np.nanmean(corrected_lc.time.value)

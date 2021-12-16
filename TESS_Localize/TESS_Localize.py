@@ -163,13 +163,13 @@ class PixelMapFit:
                     model.set_param_hint('height', value= np.nanmean(flux),vary=False)
                     model.set_param_hint('f{0:d}freq'.format(mask[i]),value = frequency_list[mask][i], vary = False)
 
-            params = model.make_params()
-            #params['f{0:d}amp'.format(j)].set(value = initial_amp[j],vary=False)
-            params['f{0:d}phase'.format(j)].set(vary=True)
-            params['f{0:d}phase'.format(j)].set(value = initial_phase[j])
-            params['f{0:d}phase'.format(j)].set(brute_step=np.pi/10)
-            result = model.fit(corrected_lc.flux.value,params,time=times,method = 'brute')
-            initial_phase[j]=result.best_values['f{0:d}phase'.format(j)]    
+                params = model.make_params()
+                #params['f{0:d}amp'.format(j)].set(value = initial_amp[j],vary=False)
+                params['f{0:d}phase'.format(j)].set(vary=True)
+                params['f{0:d}phase'.format(j)].set(value = initial_phase[j])
+                params['f{0:d}phase'.format(j)].set(brute_step=np.pi/10)
+                result = model.fit(corrected_lc.flux.value,params,time=times,method = 'brute')
+                initial_phase[j]=result.best_values['f{0:d}phase'.format(j)]    
 
             return initial_phase
 

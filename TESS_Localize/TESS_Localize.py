@@ -139,42 +139,78 @@ class PixelMapFit:
         
         
         def Obtain_Initial_Phase(tpf,corrected_lc,frequency_list):
-
             flux = corrected_lc.flux.value
             times = corrected_lc.time.value - np.nanmean(corrected_lc.time.value)
             #appending a extra value here to ensure lightkurve doesn't call an error if length of frequencies =1
             pg = corrected_lc.to_periodogram(frequency = np.append([0.0001],frequency_list),ls_method='slow')
-            initial_flux= np.asarray(pg.power[1:])
+            initial_amp= np.asarray(pg.power[1:])#initial_amp
 
             initial_phase = np.zeros(len(frequency_list))
+            mask = np.argsort(initial_amp)[::-1]
 
             def lc_model(time,amp,freq,phase):
                 return amp*np.sin(2*np.pi*freq*time + phase)
 
             def background_model(time,height):
                 return np.ones(len(time))*height
-            for j in np.arange(len(frequency_list)):
-                for i in np.arange(len(frequency_list)):
 
-                    if (i == 0):
-                        model = lm.Model(lc_model,independent_vars=['time'],prefix='f{0:d}'.format(i)) 
-                        model += lm.Model(background_model, independent_vars=['time'])
-                    else:
-                        model += lm.Model(lc_model,independent_vars=['time'],prefix='f{0:d}'.format(i))
-
-
-                    model.set_param_hint('f{0:d}phase'.format(i), min = -np.pi, max = np.pi ,value= initial_phase[i],vary = False)
-                    model.set_param_hint('f{0:d}amp'.format(i), value = initial_flux[i],vary=False)
+            model = lm.Model(background_model, independent_vars=['time'])
+            for j in mask:
+                model += lm.Model(lc_model,independent_vars=['time'],prefix='f{0:d}'.format(j))
+                for i in range(np.where(mask.value==j)[0][0]+1):
+                    model.set_param_hint('f{0:d}phase'.format(mask[i]), min = -np.pi, max = np.pi ,value= initial_phase[mask][i],vary = False)
+                    model.set_param_hint('f{0:d}amp'.format(mask[i]), value = initial_amp[mask][i],vary=False)
                     model.set_param_hint('height', value= np.nanmean(flux),vary=False)
-                    model.set_param_hint('f{0:d}freq'.format(i),value = frequency_list[i], vary = False)
+                    model.set_param_hint('f{0:d}freq'.format(mask[i]),value = frequency_list[mask][i], vary = False)
+
+            params = model.make_params()
+            #params['f{0:d}amp'.format(j)].set(value = initial_amp[j],vary=False)
+            params['f{0:d}phase'.format(j)].set(vary=True)
+            params['f{0:d}phase'.format(j)].set(value = initial_phase[j])
+            params['f{0:d}phase'.format(j)].set(brute_step=np.pi/10)
+            result = model.fit(corrected_lc.flux.value,params,time=times,method = 'brute')
+            initial_phase[j]=result.best_values['f{0:d}phase'.format(j)]    
+
+            return initial_phase
+
+self.initial_phases = Obtain_Initial_Phase(self.tpf,self.corrected_lc,self.frequency_list)
+
+#             flux = corrected_lc.flux.value
+#             times = corrected_lc.time.value - np.nanmean(corrected_lc.time.value)
+#             #appending a extra value here to ensure lightkurve doesn't call an error if length of frequencies =1
+#             pg = corrected_lc.to_periodogram(frequency = np.append([0.0001],frequency_list),ls_method='slow')
+#             initial_flux= np.asarray(pg.power[1:])#initial_amp
+
+#             initial_phase = np.zeros(len(frequency_list))
+
+#             def lc_model(time,amp,freq,phase):
+#                 return amp*np.sin(2*np.pi*freq*time + phase)
+
+#             def background_model(time,height):
+#                 return np.ones(len(time))*height
+#             for j in np.arange(len(frequency_list)):
+#                 for i in np.arange(len(frequency_list)):
+
+#                     if (i == 0):
+#                         model = lm.Model(lc_model,independent_vars=['time'],prefix='f{0:d}'.format(i)) 
+#                         model += lm.Model(background_model, independent_vars=['time'])
+#                     else:
+#                         model += lm.Model(lc_model,independent_vars=['time'],prefix='f{0:d}'.format(i))
 
 
-                params = model.make_params()
-                params['f{0:d}phase'.format(j)].set(vary=True)
-                params['f{0:d}phase'.format(j)].set(value = initial_phase[j])
-                params['f{0:d}phase'.format(j)].set(brute_step=np.pi/10)
-                result = model.fit(corrected_lc.flux.value,params,time=times,method = 'brute')
-                initial_phase[j]=result.best_values['f{0:d}phase'.format(j)]
+#                     model.set_param_hint('f{0:d}phase'.format(i), min = -np.pi, max = np.pi ,value= initial_phase[i],vary = False)
+#                     model.set_param_hint('f{0:d}amp'.format(i), value = initial_flux[i],vary=False)
+#                     model.set_param_hint('height', value= np.nanmean(flux),vary=False)
+#                     model.set_param_hint('f{0:d}freq'.format(i),value = frequency_list[i], vary = False)
+
+
+#                 params = model.make_params()
+#                 #params['f{0:d}amp'.format(j)].set(value = initial_flux[j],vary=False)
+#                 params['f{0:d}phase'.format(j)].set(vary=True)
+#                 params['f{0:d}phase'.format(j)].set(value = initial_phase[j])
+#                 params['f{0:d}phase'.format(j)].set(brute_step=np.pi/10)
+#                 result = model.fit(corrected_lc.flux.value,params,time=times,method = 'brute')
+#                 initial_phase[j]=result.best_values['f{0:d}phase'.format(j)]
 
             return initial_phase
         

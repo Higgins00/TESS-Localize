@@ -157,7 +157,7 @@ class PixelMapFit:
             model = lm.Model(background_model, independent_vars=['time'])
             for j in mask:
                 model += lm.Model(lc_model,independent_vars=['time'],prefix='f{0:d}'.format(j))
-                for i in range(np.where(mask.value==j)[0][0]+1):
+                for i in range(np.where(mask==j)[0][0]+1):
                     model.set_param_hint('f{0:d}phase'.format(mask[i]), min = -np.pi, max = np.pi ,value= initial_phase[mask][i],vary = False)
                     model.set_param_hint('f{0:d}amp'.format(mask[i]), value = initial_amp[mask][i],vary=False)
                     model.set_param_hint('height', value= np.nanmean(flux),vary=False)

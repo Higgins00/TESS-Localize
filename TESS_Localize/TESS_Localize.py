@@ -212,7 +212,7 @@ self.initial_phases = Obtain_Initial_Phase(self.tpf,self.corrected_lc,self.frequ
 #                 result = model.fit(corrected_lc.flux.value,params,time=times,method = 'brute')
 #                 initial_phase[j]=result.best_values['f{0:d}phase'.format(j)]
 
-            return initial_phase
+            #return initial_phase
         
         self.initial_phases = Obtain_Initial_Phase(self.tpf,self.corrected_lc,self.frequency_list)
         

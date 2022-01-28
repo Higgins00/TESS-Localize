@@ -54,7 +54,6 @@ class PCA:
                  aperture=None):
         
         self.tpf = targetpixelfile
-        self.method = method
         #Defining an aperture that will be used in plotting and making empty 2-d arrays of the correct size for masks
         self.aperture = aperture
         self.principal_components = principal_components

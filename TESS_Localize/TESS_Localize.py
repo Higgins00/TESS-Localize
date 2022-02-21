@@ -139,8 +139,8 @@ class Localize:
         List of frequencies desired to localize the source location for.
     frequnit: astropy.units.unit
         Units of the frequencies in frequencies list.
-    principal_components: int
-        Number of components used in PCA for TPF lightcurve.
+    principal_components: int, str
+        Number of components used in PCA for TPF lightcurve, or 'auto' for automatic determination.
     aperture: 2D Boolean array
         If not specified user the TPF.pipeline_mask will be used, if a user specified aperture is used it must be the same shape as the TPF.
 
@@ -159,7 +159,7 @@ class Localize:
     self.frequency_list
         List of frequencies used.
     self.principal_components
-        Number of principal components removed.
+        Number of principal components removed, or 'auto'
     self.initial_phases
         Initial phases fit for the frequencies.
     self.final_phases
@@ -183,7 +183,7 @@ class Localize:
     """
     
     def __init__(self, targetpixelfile, gaia=True, magnitude_limit=18, 
-                 frequencies=[], frequnit=u.uHz, principal_components = 5, 
+                 frequencies=[], frequnit=u.uHz, principal_components = 'auto', 
                  aperture=None, method = 'PRF', sigma=None, **kwargs):
         
         self.tpf = targetpixelfile

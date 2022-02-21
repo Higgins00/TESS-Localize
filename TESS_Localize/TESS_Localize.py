@@ -659,9 +659,28 @@ class Localize:
             g2 = self.raw_lc.plot(label='Raw light curve')
             self.corrected_lc.plot(ax=g2, label='Corrected light curve')
 
-    def plot(self,save = None,figuresize = (10,10)):
+    def plot(self,frequencylist_index = 0,method = 'amp',save = None,figuresize = (10,10)):
+        """Plot the amplitude heatmap, snr, errors, or the fit model.
+        Parameters
+        ----------
+        frequencylist_index: int
+        method: 'amp', 'snr', 'errors', 'model'
+        save: Boolean
+            True if you want to save the png of the plot
+        figuresize: size of plot
+        
+        """
         plt.figure(figsize = (figuresize))
-        plt.imshow(self.heatmap,origin='lower')
+        if (method=='amp'):
+            plt.imshow(self.heats[frequencylist_index].reshape(self.tpf.shape[1:]),origin='lower')
+        elif (method=='snr'):
+            plt.imshow(self.heats[frequencylist_index].reshape(self.tpf.shape[1:])/self.heats_error[frequencylist_index].reshape(self.tpf.shape[1:]),origin='lower')
+        elif (method=='errors'):
+            plt.imshow(self.heats_error[frequencylist_index].reshape(self.tpf.shape[1:]),origin='lower')
+        elif (method=='model'):
+            prf = PRF.TESS_PRF(cam = tpf.camera, ccd = tpf.ccd, sector = tpf.sector, colnum = tpf.column, rownum = tpf.row, localdatadir=None)
+            model = prf.locate(self.location[0],self.location[1], self.tpf.shape[1:])
+            plt.imshow(model,origin='lower')
         
         if (self.gaiadata != None):
             plt.scatter(self.gaiadata['x'],self.gaiadata['y'],s=self.gaiadata['size']*5,c='white',alpha=.6)

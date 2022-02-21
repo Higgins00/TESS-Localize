@@ -27,7 +27,7 @@ frequency_list = [9.51112996, 19.02225993, 28.53338989, 38.04451986, 47.55564982
 search_result = lk.search_targetpixelfile('TIC117070953')
 tpf = search_result.download(quality_bitmask='default')
 
-tutorial_example = tl.PixelMapFit(targetpixelfile=tpf, gaia=True, magnitude_limit=18,
+tutorial_example = tl.Localize(targetpixelfile=tpf, gaia=True, magnitude_limit=18,
                                   frequencies=frequency_list, frequnit=u.uHz, principal_components = 3)
 ```
 ### Useful Functions:

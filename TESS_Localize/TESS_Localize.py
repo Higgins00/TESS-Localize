@@ -2,6 +2,7 @@
 
 #from __future__ import division, print_function
 import warnings
+from copy import copy
 import numpy as np
 from astropy.coordinates import SkyCoord, Angle
 import astropy.units as u
@@ -13,6 +14,13 @@ import lmfit as lm
 from lmfit import Minimizer, Parameters, report_fit
 import PRF
 import sys
+import pygmmis
+import pkg_resources
+
+#Read in extrinsic error model from fitting thousands of binary systems
+_error_fname = pkg_resources.resource_filename(__name__, "error_model.npz")
+error_ext = pygmmis.GMM(K=2, D=2)
+error_ext.load(_error_fname)
 
 class PCA:
     """Class designed to give users access to analysis functions.
@@ -446,6 +454,7 @@ class Localize:
         heats_error = np.asarray(heats_error)
         self.heats = heats.T
         self.heats_error = heats_error.T
+        
         self.timeserieslength = (self.tpf.time.max()-self.tpf.time.min()).value
         self.gaiadata = None
         
@@ -500,6 +509,7 @@ class Localize:
 
 
             self.gaiadata = source
+        
         class frequency_heatmap:
 
             def __init__(self,tpf,heats,heats_error,frequencies,gaia_data,method):
@@ -600,7 +610,7 @@ class Localize:
                 self.y = fit['y']
 
                 
-            def star_list(self):
+            def star_list(self, logL):
                 gaia_data = self.gaiadata
                 no_gaia_data_message = ValueError('No gaia data initialized in PixelMapPeriodogram class')
                 if gaia_data ==None :
@@ -608,25 +618,35 @@ class Localize:
 
                 else:
                     distances = np.square(self.x-gaia_data['x'])+np.square(self.y-gaia_data['y'])
-                    closest_star_mask = np.where(np.square(self.x-gaia_data['x'])+np.square(self.y-gaia_data['y'])==(np.square(self.x-gaia_data['x'])+np.square(self.y-gaia_data['y'])).min())
+                    #closest_star_mask = np.where(np.square(self.x-gaia_data['x'])+np.square(self.y-gaia_data['y'])==(np.square(self.x-gaia_data['x'])+np.square(self.y-gaia_data['y'])).min())
                     stars = dict(ra = np.asarray(gaia_data['ra']),
                                  dec = np.asarray(gaia_data['dec']),
                                  source = np.asarray(gaia_data['source']),
                                  x = np.asarray(gaia_data['x']),
                                  y = np.asarray(gaia_data['y']),
+                                 Gmag = np.asarray(gaia_data['Gmag']),
                                  distance = distances)
-                                 #include a probability metric here eventually 
-                        
+                    #compute likelihoods of gaia sources
+                    L = 10**logL(np.vstack((gaia_data["x"],gaia_data["y"])).T) #likelihoods
+                    L /= np.sum(L) #normalized
+                    stars["likelihood"] = L
                     starlist = pd.DataFrame.from_dict(stars)
-                    self.stars = starlist.sort_values(by=[r'distance'])
+                    self.stars = starlist.sort_values(by=[r'likelihood'],ascending = False)
                     
         fh = frequency_heatmap(self.tpf,self.heats,self.heats_error,self.frequency_list,self.gaiadata,self.method) 
         fh.location()
         self.location = [fh.x,fh.y]
         self.heatmap = self.heats.sum(axis=0).reshape(self.aperture.shape[0],self.aperture.shape[1]) / np.sqrt((self.heats_error**2).sum(axis=0)).reshape(self.aperture.shape[0],self.aperture.shape[1])
         self.result = fh.result
-        if (self.gaiadata !=None):
-            fh.star_list()
+        
+        #Combined error model
+        error_model = copy(error_ext) #extrinsic error
+        error_model.covar += self.result.covar[-2:,-2:] #intrinsic error
+        error_model.mean += self.location #Locate relative to best-fit position
+        self.logL = error_model.logL
+        
+        if (self.gaiadata is not None):
+            fh.star_list(self.logL)
             self.starfit= fh.stars.reset_index()
 
     

@@ -13,5 +13,6 @@ author_email='michael.higgins@duke.edu',
 license='GNU General Public License v3.0',
 install_requires=requirements,
 packages=['TESS_Localize'],
+package_data={"": ["*.npz"]},
 zip_safe=False)
 

@@ -34,7 +34,7 @@ class PCA:
         Units of the frequencies in frequencies list.
     principal_components: int
         Number of components used in PCA for TPF lightcurve.
-    aperture: 2D Boolean array
+    aperture: 2D Boolean array, 'auto'
         If not specified user the TPF.pipeline_mask will be used, if a user specified aperture is used it must be the same shape as the TPF.
     Returns
     ----------
@@ -69,9 +69,37 @@ class PCA:
             
         if self.aperture is None:
             self.aperture = targetpixelfile.pipeline_mask
-            if targetpixelfile.pipeline_mask.any() == False:
+            if (targetpixelfile.pipeline_mask.any() == False):
                 #will add a flag here if no aperture
-                self.aperture = self.tpf.create_threshold_mask()
+                def frequency_aperture(tpf,frequencies,frequnits = 1/u.d):
+                    heat = np.empty((tpf.shape[1],tpf.shape[2]))
+                    heat[:]=np.nan
+                    #Iterating through columns of pixels
+
+                    for i in np.arange(0,tpf.shape[1]):
+
+                        #Iterating through rows of pixels
+                        for j in np.arange(0,tpf.shape[2]):
+
+
+                            #Making an empty 2-d array
+                            mask = np.zeros((tpf.shape[1],tpf.shape[2]), dtype=bool)
+
+                            #Iterating to isolate pixel by pixel to get light curves
+                            mask[i][j] = True
+
+                            #Getting the light curve for a pixel and excluding any flagged data
+                            lightcurve = tpf.to_lightcurve(aperture_mask=mask)
+                            lightcurve = lightcurve[np.isfinite(lightcurve['flux']*lightcurve['flux_err'])]
+                            lightcurve = lightcurve[np.where(lightcurve[np.isfinite(lightcurve['flux']*lightcurve['flux_err'])].quality==0)]
+                            pg = lightcurve.to_periodogram(frequency = frequencies,freq_unit = frequnits,ls_method='slow')
+
+                            heat[i][j] = np.sum(pg.power.value**2)**(1/2)
+                    return heat>np.mean(heat)+2*np.std(heat)
+                self.aperture = frequency_aperture(tpf=self.tpf,frequencies = frequencies, frequnits = frequnit)
+                    
+        if aperture =='auto':
+            self.aperture = frequency_aperture(tpf=self.tpf,frequencies = frequencies, frequnits = frequnit)
     
         
         # Make a design matrix and pass it to a linear regression corrector
@@ -236,7 +264,7 @@ class Localize:
                     return heat>np.mean(heat)+2*np.std(heat)
                 self.aperture = frequency_aperture(tpf=self.tpf,frequencies = frequencies, frequnits = frequnit)
                     
-        if self.aperture =='auto':
+        if aperture =='auto':
             self.aperture = frequency_aperture(tpf=self.tpf,frequencies = frequencies, frequnits = frequnit)
             
         if principal_components == 'auto':

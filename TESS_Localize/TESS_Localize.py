@@ -573,8 +573,8 @@ class Localize:
                     #Residuals to minimize relative to the error bars
                     def residual(params, amp, amperr, prf):
 
-                        x = params['x']
-                        y = params['y']
+                        x = params['column']
+                        y = params['row']
 
                         res = []
                         localprf = self.prf.locate(x, y, (self.size[0],self.size[1]))

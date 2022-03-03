@@ -149,7 +149,7 @@ class Localize:
         Units of the frequencies in frequencies list.
     principal_components: int, str
         Number of components used in PCA for TPF lightcurve, or 'auto' for automatic determination.
-    aperture: 2D Boolean array
+    aperture: 2D Boolean array, or 'auto'
         If not specified user the TPF.pipeline_mask will be used, if a user specified aperture is used it must be the same shape as the TPF.
 
     Returns
@@ -179,13 +179,17 @@ class Localize:
     self.timeserieslength
     self.gaiadata
     self.location
-        Best fit source location.
+        Best fit source location in pixels.
+    self.location_skycoord
+        Best fit source location in RA and DEC.
     self.heatmap
         2D array of composite heatmap for all frequencies.
     self.starfit
         Gaia sources and their distances from the fitted location of the source.
     self.result
-        Result paramters of the fit. Use report_fit(self.report) to view.
+        Result parameters of the fit. Use report_fit(self.report) to view.
+    self.maxsignal_aperture
+        Aperture mask for the pixel with the greatest SNR
     
     
     """
@@ -200,12 +204,47 @@ class Localize:
         self.aperture = aperture
         self.frequency_list = np.asarray((frequencies*frequnit).to(1/u.d))
         self.principal_components = principal_components
+            
+        if self.aperture is None:
+            self.aperture = targetpixelfile.pipeline_mask
+            if (targetpixelfile.pipeline_mask.any() == False):
+                #will add a flag here if no aperture
+                def frequency_aperture(tpf,frequencies,frequnits = 1/u.d):
+                    heat = np.empty((tpf.shape[1],tpf.shape[2]))
+                    heat[:]=np.nan
+                    #Iterating through columns of pixels
+
+                    for i in np.arange(0,tpf.shape[1]):
+
+                        #Iterating through rows of pixels
+                        for j in np.arange(0,tpf.shape[2]):
+
+
+                            #Making an empty 2-d array
+                            mask = np.zeros((tpf.shape[1],tpf.shape[2]), dtype=bool)
+
+                            #Iterating to isolate pixel by pixel to get light curves
+                            mask[i][j] = True
+
+                            #Getting the light curve for a pixel and excluding any flagged data
+                            lightcurve = tpf.to_lightcurve(aperture_mask=mask)
+                            lightcurve = lightcurve[np.isfinite(lightcurve['flux']*lightcurve['flux_err'])]
+                            lightcurve = lightcurve[np.where(lightcurve[np.isfinite(lightcurve['flux']*lightcurve['flux_err'])].quality==0)]
+                            pg = lightcurve.to_periodogram(frequency = frequencies,freq_unit = frequnits,ls_method='slow')
+
+                            heat[i][j] = np.sum(pg.power.value**2)**(1/2)
+                    return heat>np.mean(heat)+2*np.std(heat)
+                self.aperture = frequency_aperture(tpf=self.tpf,frequencies = frequencies, frequnits = frequnit)
+                    
+        if self.aperture =='auto':
+            self.aperture = frequency_aperture(tpf=self.tpf,frequencies = frequencies, frequnits = frequnit)
+            
         if principal_components == 'auto':
             self.principal_components = 5
             self.raw_lc1 = self.tpf.to_lightcurve(aperture_mask=self.aperture)
             self.quality_mask = [np.isfinite(self.raw_lc1['flux']*self.raw_lc1['flux_err'])]
             if self.principal_components !=0:
-                self.dm = lk.DesignMatrix(self.tpf.flux[:,~self.tpf.pipeline_mask][np.isfinite(self.raw_lc1['flux']*self.raw_lc1['flux_err']),:][np.where(self.raw_lc1[self.quality_mask[0]].quality ==0)[0],:], name='regressors').pca(self.principal_components)
+                self.dm = lk.DesignMatrix(self.tpf.flux[:,~self.aperture][np.isfinite(self.raw_lc1['flux']*self.raw_lc1['flux_err']),:][np.where(self.raw_lc1[self.quality_mask[0]].quality ==0)[0],:], name='regressors').pca(self.principal_components)
                 self.raw_lc = self.raw_lc1[self.quality_mask[0]]
                 self.raw_lc = self.raw_lc[np.where(self.raw_lc1[self.quality_mask[0]].quality ==0)]
 
@@ -246,7 +285,7 @@ class Localize:
         self.raw_lc1 = self.tpf.to_lightcurve(aperture_mask=self.aperture)
         self.quality_mask = [np.isfinite(self.raw_lc1['flux']*self.raw_lc1['flux_err'])]
         if self.principal_components !=0:
-            self.dm = lk.DesignMatrix(self.tpf.flux[:,~self.tpf.pipeline_mask][np.isfinite(self.raw_lc1['flux']*self.raw_lc1['flux_err']),:][np.where(self.raw_lc1[self.quality_mask[0]].quality ==0)[0],:], name='regressors').pca(self.principal_components)
+            self.dm = lk.DesignMatrix(self.tpf.flux[:,~self.aperture][np.isfinite(self.raw_lc1['flux']*self.raw_lc1['flux_err']),:][np.where(self.raw_lc1[self.quality_mask[0]].quality ==0)[0],:], name='regressors').pca(self.principal_components)
             self.raw_lc = self.raw_lc1[self.quality_mask[0]]
             self.raw_lc = self.raw_lc[np.where(self.raw_lc1[self.quality_mask[0]].quality ==0)]
         
@@ -559,8 +598,8 @@ class Localize:
                     params = Parameters()
                     for i in np.arange(len(frequencies)):#
                         params.add('height{0:d}'.format(i), value=np.max(self.heat_stamp[i]))
-                    params.add('x', value=c[1][0])#c[0]) 
-                    params.add('y', value=c[0][0])#c[1])
+                    params.add('column', value=c[1][0])#c[0]) 
+                    params.add('row', value=c[0][0])#c[1])
                     #params.add('sigma', value=1)
                 else:
                     if sigma is None:
@@ -572,8 +611,8 @@ class Localize:
                     #Residuals to minimize relative to the error bars
                     def residual(params, amp, amperr, prf):
 
-                        x = params['x']
-                        y = params['y']
+                        x = params['column']
+                        y = params['row']
                         #sigma = params['sigma'] #KJB removed
                         
                         res = []
@@ -597,8 +636,8 @@ class Localize:
                     params = Parameters()
                     for i in np.arange(len(frequencies)):#
                         params.add('height{0:d}'.format(i), value=np.max(self.heat_stamp[i]))
-                    params.add('x', value=c[1][0])#c[0]) 
-                    params.add('y', value=c[0][0])#c[1])
+                    params.add('column', value=c[1][0])#c[0]) 
+                    params.add('row', value=c[0][0])#c[1])
                     #params.add('sigma', value=1)        # KJB: not fitted
                     
                     
@@ -606,8 +645,8 @@ class Localize:
                 minner = Minimizer(residual, params, fcn_args=(self.heat_stamp, self.heatmap_error, self.prf))
                 self.result = minner.minimize()
                 fit = self.result.params.valuesdict()
-                self.x = fit['x']
-                self.y = fit['y']
+                self.x = fit['column']
+                self.y = fit['row']
 
                 
             def star_list(self, logL):
@@ -633,10 +672,13 @@ class Localize:
                     starlist = pd.DataFrame.from_dict(stars)
                     self.stars = starlist.sort_values(by=[r'likelihood'],ascending = False)
                     
+        
         fh = frequency_heatmap(self.tpf,self.heats,self.heats_error,self.frequency_list,self.gaiadata,self.method) 
         fh.location()
         self.location = [fh.x,fh.y]
+        self.location_skycoord = self.tpf.wcs.all_pix2world([[fh.x,fh.y]], 0)[0]
         self.heatmap = self.heats.sum(axis=0).reshape(self.aperture.shape[0],self.aperture.shape[1]) / np.sqrt((self.heats_error**2).sum(axis=0)).reshape(self.aperture.shape[0],self.aperture.shape[1])
+        self.maxsignal_aperture = self.heatmap == self.heatmap.max()
         self.result = fh.result
         
         #Combined error model
@@ -652,6 +694,7 @@ class Localize:
     
     def info(self):
         plt.imshow(self.heatmap,origin='lower')
+        plt.title('SNR')
         #plot the location
         if (self.gaiadata != None):
             plt.scatter(self.gaiadata['x'],self.gaiadata['y'],s=self.gaiadata['size']*5,c='white',alpha=.6)
@@ -661,7 +704,10 @@ class Localize:
         plt.ylim(-.5,self.aperture.shape[0]-1+.5)
         report_fit(self.result)
         if (np.asarray([self.result.params['height{0:d}'.format(j)].stderr for j in np.arange(len(self.frequency_list))]) / np.asarray([self.result.params['height{0:d}'.format(j)].value for j in np.arange(len(self.frequency_list))])>.2).any():
+            #possibly reword this
             warnings.warn('Frequencies used may not all belong to the same source and provided fit could be unreliable')
+        if ((self.location[0]<0) and (self.location[0]>tpf.shape[1])) or ((self.location[1]<0) and (self.location[1]>tpf.shape[2])):
+            warnings.warn('Source fit to a location outside the TPF, refitting using a TPF centered around source is recommended')
     
     def pca(self):
         if self.principal_components==0:

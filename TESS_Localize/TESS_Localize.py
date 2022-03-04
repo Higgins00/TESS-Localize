@@ -678,7 +678,7 @@ class Localize:
                 #Combined error model
                 self.error_model = copy(error_ext) #extrinsic error
                 self.error_model.covar += self.result.covar[-2:,-2:] #intrinsic error
-                self.error_model.mean += self.location #Locate relative to best-fit position
+                self.error_model.mean += [self.x,self.y] #Locate relative to best-fit position
                 self.logL = self.error_model.logL
                 
             def star_list(self):

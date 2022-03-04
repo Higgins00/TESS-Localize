@@ -675,9 +675,13 @@ class Localize:
                 fit = self.result.params.valuesdict()
                 self.x = fit['column']
                 self.y = fit['row']
-
+                #Combined error model
+                self.error_model = copy(error_ext) #extrinsic error
+                self.error_model.covar += self.result.covar[-2:,-2:] #intrinsic error
+                self.error_model.mean += self.location #Locate relative to best-fit position
+                self.logL = self.error_model.logL
                 
-            def star_list(self, logL):
+            def star_list(self):
                 gaia_data = self.gaiadata
                 no_gaia_data_message = ValueError('No gaia data initialized in PixelMapPeriodogram class')
                 if gaia_data ==None :
@@ -694,7 +698,7 @@ class Localize:
                                  Gmag = np.asarray(gaia_data['Gmag']),
                                  distance = distances)
                     #compute likelihoods of gaia sources
-                    L = 10**logL(np.vstack((gaia_data["x"],gaia_data["y"])).T) #likelihoods
+                    L = 10**self.logL(np.vstack((gaia_data["x"],gaia_data["y"])).T) #likelihoods
                     L /= np.sum(L) #normalized
                     stars["likelihood"] = L
                     starlist = pd.DataFrame.from_dict(stars)
@@ -709,14 +713,11 @@ class Localize:
         self.maxsignal_aperture = self.heatmap == self.heatmap.max()
         self.result = fh.result
         
-        #Combined error model
-        error_model = copy(error_ext) #extrinsic error
-        error_model.covar += self.result.covar[-2:,-2:] #intrinsic error
-        error_model.mean += self.location #Locate relative to best-fit position
-        self.logL = error_model.logL
+        
+
         
         if (self.gaiadata is not None):
-            fh.star_list(self.logL)
+            fh.star_list()
             self.starfit= fh.stars.reset_index()
 
     

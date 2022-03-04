@@ -17,10 +17,7 @@ import sys
 import pygmmis
 import pkg_resources
 
-#Read in extrinsic error model from fitting thousands of binary systems
-_error_fname = pkg_resources.resource_filename(__name__, "error_model.npz")
-error_ext = pygmmis.GMM(K=2, D=2)
-error_ext.load(_error_fname)
+
 
 class PCA:
     """Class designed to give users access to analysis functions.
@@ -675,6 +672,10 @@ class Localize:
                 fit = self.result.params.valuesdict()
                 self.x = fit['column']
                 self.y = fit['row']
+                #Read in extrinsic error model from fitting thousands of binary systems
+                _error_fname = pkg_resources.resource_filename(__name__, "error_model.npz")
+                error_ext = pygmmis.GMM(K=2, D=2)
+                error_ext.load(_error_fname)
                 #Combined error model
                 self.error_model = copy(error_ext) #extrinsic error
                 self.error_model.covar += self.result.covar[-2:,-2:] #intrinsic error

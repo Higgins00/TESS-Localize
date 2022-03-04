@@ -50,4 +50,4 @@ tutorial_example.plot(frequencylist_index=2,method='snr')
 ```
 Result: An image of the composite heat map created from the contributions of the amplitudes of each frequency at every pixel. The white dots are Gaia sources, and the black 'X' is the best fit location of the source.
 
-![Plot](https://github.com/Higgins00/TESS-Localizer/blob/main/Composite_Amplitude_Heatmap.png)
+![Plot](https://github.com/Higgins00/TESS-Localizer/blob/main/SNR.png)

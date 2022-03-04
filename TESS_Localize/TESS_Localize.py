@@ -774,7 +774,9 @@ class Localize:
         elif (method=='errors'):
             plt.imshow(self.heats_error[frequencylist_index].reshape(self.tpf.shape[1:]),origin='lower')
         elif (method=='model'):
-            prf = PRF.TESS_PRF(cam = tpf.camera, ccd = tpf.ccd, sector = tpf.sector, colnum = tpf.column, rownum = tpf.row, localdatadir=None)
+            prf = PRF.TESS_PRF(cam = self.tpf.camera, ccd = self.tpf.ccd,
+                               sector = self.tpf.sector, colnum = self.tpf.column+self.size[0]/2.,
+                               rownum = self.tpf.row+self.size[1]/2., **kwargs)
             model = prf.locate(self.location[0],self.location[1], self.tpf.shape[1:])
             plt.imshow(model,origin='lower')
         

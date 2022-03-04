@@ -48,6 +48,6 @@ Result: Gaia sources filtered by their distance from the fitted location of the 
 ```python
 tutorial_example.plot(frequencylist_index=2,method='snr')
 ```
-Result: An image of the composite heat map created from the contributions of the amplitudes of each frequency at every pixel. The white dots are Gaia sources, and the black 'X' is the best fit location of the source.
+Result: An image of the signal to noise heatmap created from the amplitude of the most significant frequency at every pixel. The white dots are Gaia sources, and the black 'X' is the best fit location of the source.
 
 ![Plot](https://github.com/Higgins00/TESS-Localizer/blob/main/SNR.png)

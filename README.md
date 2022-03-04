@@ -43,7 +43,7 @@ tutorial_example.info()
 ```
 Result: Gaia sources filtered by their distance from the fitted location of the source, and the fit statistics.
 
-![result1](https://github.com/Higgins00/TESS-Localizer/blob/main/result1.png)
+![result1](https://github.com/Higgins00/TESS-Localizer/blob/main/result.png)
 
 ```python
 tutorial_example.plot(save='Composite_Amplitude_Heatmap.png',figuresize=(8,8))

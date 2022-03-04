@@ -46,7 +46,7 @@ Result: Gaia sources filtered by their distance from the fitted location of the 
 ![result1](https://github.com/Higgins00/TESS-Localizer/blob/main/result.png)
 
 ```python
-tutorial_example.plot(save='Composite_Amplitude_Heatmap.png',figuresize=(8,8))
+tutorial_example.plot(frequencylist_index=2,method='snr')
 ```
 Result: An image of the composite heat map created from the contributions of the amplitudes of each frequency at every pixel. The white dots are Gaia sources, and the black 'X' is the best fit location of the source.
 

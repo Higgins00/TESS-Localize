@@ -638,7 +638,6 @@ class Localize:
 
                         x = params['column']
                         y = params['row']
-                        #sigma = params['sigma'] #KJB removed
                         
                         res = []
                         for i in np.arange(len(frequencies)):
@@ -661,14 +660,19 @@ class Localize:
                     params = Parameters()
                     for i in np.arange(len(frequencies)):#
                         params.add('height{0:d}'.format(i), value=np.max(self.heat_stamp[i]))
-                    params.add('column', value=c[1][0])#c[0]) 
-                    params.add('row', value=c[0][0])#c[1])
-                    #params.add('sigma', value=1)        # KJB: not fitted
+                    params.add('column', value=c[1][0])
+                    params.add('row', value=c[0][0])
                     
                     
                 #Do the fit
                 minner = Minimizer(residual, params, fcn_args=(self.heat_stamp, self.heatmap_error, self.prf))
-                self.result = minner.minimize()
+                result = minner.minimize()
+                #include mean pointing offset from DVA
+                mean_pos_corr1 = np.nanmean(self.tpf.hdu[1].data['POS_CORR1']) #Mean pixel motion
+                mean_pos_corr2 = np.nanmean(self.tpf.hdu[1].data['POS_CORR2'])
+                result.params['column'].value += mean_pos_corr1
+                result.params['row'].value += mean_pos_corr2
+                self.result = result
                 fit = self.result.params.valuesdict()
                 self.x = fit['column']
                 self.y = fit['row']
@@ -708,8 +712,9 @@ class Localize:
         
         fh = frequency_heatmap(self.tpf,self.heats,self.heats_error,self.frequency_list,self.gaiadata,self.method) 
         fh.location()
+        
         self.location = [fh.x,fh.y]
-        self.location_skycoord = self.tpf.wcs.all_pix2world([[fh.x,fh.y]], 0)[0]
+        self.location_skycoord = self.tpf.wcs.all_pix2world([self.location], 0)[0]
         self.heatmap = self.heats.sum(axis=0).reshape(self.aperture.shape[0],self.aperture.shape[1]) / np.sqrt((self.heats_error**2).sum(axis=0)).reshape(self.aperture.shape[0],self.aperture.shape[1])
         self.maxsignal_aperture = self.heatmap == self.heatmap.max()
         self.result = fh.result

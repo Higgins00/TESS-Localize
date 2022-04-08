@@ -681,8 +681,8 @@ class Localize:
                     
                     
                 #Do the fit
-                minner = Minimizer(residual, params, fcn_args=(self.heat_stamp, self.heatmap_error, self.prf))
-                result = minner.minimize(nan_policy='omit')
+                minner = Minimizer(residual, params, fcn_args=(self.heat_stamp, self.heatmap_error, self.prf),nan_policy='omit')
+                result = minner.minimize()
                 #include mean pointing offset from DVA
                 mean_pos_corr1 = np.nanmean(self.tpf.hdu[1].data['POS_CORR1']) #Mean pixel motion
                 mean_pos_corr2 = np.nanmean(self.tpf.hdu[1].data['POS_CORR2'])

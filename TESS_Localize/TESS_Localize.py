@@ -509,7 +509,7 @@ class Localize:
                 lightcurve = self.tpf.to_lightcurve(aperture_mask=mask)
                 lightcurve = lightcurve[self.quality_mask[0]]
                 lightcurve = lightcurve[np.where(self.raw_lc1[self.quality_mask[0]].quality ==0)]
-                if len(lightcurve[np.isfinite(lightcurve['flux']*lightcurve['flux_err'])])!=0
+                if len(lightcurve[np.isfinite(lightcurve['flux']*lightcurve['flux_err'])])!=0:
 
 
                     if principal_components !=0:

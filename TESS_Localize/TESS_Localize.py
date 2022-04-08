@@ -223,7 +223,7 @@ class Localize:
     
     def __init__(self, targetpixelfile, gaia=True, magnitude_limit=18, 
                  frequencies=[], frequnit=u.uHz, principal_components = 'auto', 
-                 aperture=None, method = 'PRF', sigma=None, mask=None **kwargs):
+                 aperture=None, method = 'PRF', sigma=None, mask=None, **kwargs):
         
         self.tpf = targetpixelfile
         self.method = method

@@ -633,12 +633,12 @@ class Localize:
                     self.heatmap_error[np.where(self.heatmap_error==0)]=np.nan
                     #reshaping composite heatmap for user to plot
                     composite_heatmap = self.heat_stamp.sum(axis=0).reshape(self.size) / ((np.nansum(self.heatmap_error**2,axis=0))**(1/2)).reshape(self.size)#issue with numpy using sqrt?
-                    c = np.where(composite_heatmap==composite_heatmap.max())
+                    c = np.where(composite_heatmap==np.nanmax(composite_heatmap))
 
 
                     params = Parameters()
                     for i in np.arange(len(frequencies)):#
-                        params.add('height{0:d}'.format(i), value=np.max(self.heat_stamp[i]))
+                        params.add('height{0:d}'.format(i), value=np.nanmax(self.heat_stamp[i]))
                     params.add('column', value=c[1][0])#c[0]) 
                     params.add('row', value=c[0][0])#c[1])
                     #params.add('sigma', value=1)
@@ -670,12 +670,12 @@ class Localize:
                     self.heatmap_error[np.where(self.heatmap_error==0)]=np.nan
                     #reshaping composite heatmap for user to plot
                     composite_heatmap = self.heat_stamp.sum(axis=0).reshape(self.size) / ((np.nansum(self.heatmap_error**2,axis=0))**(1/2)).reshape(self.size)#issue with numpy using sqrt?
-                    c = np.where(composite_heatmap==composite_heatmap.max())
+                    c = np.where(composite_heatmap==np.nanmax(composite_heatmap))
 
 
                     params = Parameters()
                     for i in np.arange(len(frequencies)):#
-                        params.add('height{0:d}'.format(i), value=np.max(self.heat_stamp[i]))
+                        params.add('height{0:d}'.format(i), value=np.nanmax(self.heat_stamp[i]))
                     params.add('column', value=c[1][0])
                     params.add('row', value=c[0][0])
                     
@@ -732,7 +732,7 @@ class Localize:
         self.location = [fh.x,fh.y]
         self.location_skycoord = self.tpf.wcs.all_pix2world([self.location], 0)[0]
         self.heatmap = self.heats.sum(axis=0).reshape(self.aperture.shape[0],self.aperture.shape[1]) / np.sqrt((self.heats_error**2).sum(axis=0)).reshape(self.aperture.shape[0],self.aperture.shape[1])
-        self.maxsignal_aperture = self.heatmap == self.heatmap.max()
+        self.maxsignal_aperture = self.heatmap == np.nanmax(self.heatmap)
         self.result = fh.result
         
         

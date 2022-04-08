@@ -759,15 +759,60 @@ class Localize:
                 ax[1].axvline(x = self.frequency_list[i],color='r',linestyle='--',linewidth=1)
             g2 = self.raw_lc.plot(label='Raw light curve')
             self.corrected_lc.plot(ax=g2, label='Corrected light curve')
+            
+    def plot_lc(self,lightcurve_aperture=None,save = None,figuresize = (10,5)):
+        """Plot the amplitude heatmap, snr, errors, or the fit model.
+        Parameters
+        ----------
+        lightcurve_aperture: 2D Boolean array, or None
+        If not specified user the self.maxsignal_aperture will be used, if a user specified aperture is used it must be the same shape as the TPF.
+        save: str, or None
+            'filename.png' if you want to save the png of the plot
+        figuresize: size of plot
+        
+        """
+        plt.figure(figsize = (figuresize))
+        if (lightcurve_aperture==None):
+            lightcurve_aperture = self.maxsignal_aperture
+        lightcurve = self.tpf.to_lightcurve(aperture_mask=lightcurve_aperture)
+        lightcurve = lightcurve[self.quality_mask[0]]
+        lightcurve = lightcurve[np.where(self.raw_lc1[self.quality_mask[0]].quality ==0)]
 
+
+        if self.principal_components !=0:
+            rcc = lk.RegressionCorrector(lightcurve)
+            lc = rcc.correct(self.dm.append_constant())
+        else:
+            lc=lightcurve
+        flux = lc.flux.value
+        times = lc.time.value - np.nanmean(lc.time.value)
+        freq = self.frequency_list
+        phase = self.final_phases
+        fit = 0
+        for i in range(len(low.frequency_list)):
+            fit += self.result.params[self.result.var_names[:-2][i]].value*np.sin(2*np.pi*freq[i]*times + phase[i])
+        
+        plt.scatter(times,flux,s=.5,label='Lightcurve')
+        plt.plot(times,fit+np.mean(flux),c='r',linestyle='-',lw=1,alpha=.7,label = 'Lightcurve Fit')
+
+        plt.xlabel('Time')
+        plt.ylabel('Flux')
+        plt.legend()
+        
+
+            
+
+        if save != None:
+            plt.savefig(save)
+            
     def plot(self,frequencylist_index = 0,method = 'amp',save = None,figuresize = (10,10)):
         """Plot the amplitude heatmap, snr, errors, or the fit model.
         Parameters
         ----------
         frequencylist_index: int
         method: 'amp', 'snr', 'errors', 'model'
-        save: Boolean
-            True if you want to save the png of the plot
+        save: str, or None
+            'filename.png' if you want to save the png of the plot
         figuresize: size of plot
         
         """

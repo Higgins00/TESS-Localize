@@ -259,10 +259,13 @@ class Localize:
                     #Getting the light curve for a pixel and excluding any flagged data
                     lightcurve = tpf.to_lightcurve(aperture_mask=mask)
                     lightcurve = lightcurve[np.isfinite(lightcurve['flux']*lightcurve['flux_err'])]
-                    lightcurve = lightcurve[np.where(lightcurve[np.isfinite(lightcurve['flux']*lightcurve['flux_err'])].quality==0)]
-                    pg = lightcurve.to_periodogram(frequency = frequencies,freq_unit = frequnits,ls_method='slow')
+                    if len(lightcurve)!=0:
+                        lightcurve = lightcurve[np.where(lightcurve[np.isfinite(lightcurve['flux']*lightcurve['flux_err'])].quality==0)]
+                        pg = lightcurve.to_periodogram(frequency = frequencies,freq_unit = frequnits,ls_method='slow')
 
-                    heat[i][j] = np.sum(pg.power.value**2)**(1/2)
+                        heat[i][j] = np.sum(pg.power.value**2)**(1/2)
+                    else:
+                        heat[i][j]=np.nan
             return heat>np.mean(heat)+2*np.std(heat)
         if self.aperture is None:
             self.aperture = targetpixelfile.pipeline_mask
@@ -506,22 +509,26 @@ class Localize:
                 lightcurve = self.tpf.to_lightcurve(aperture_mask=mask)
                 lightcurve = lightcurve[self.quality_mask[0]]
                 lightcurve = lightcurve[np.where(self.raw_lc1[self.quality_mask[0]].quality ==0)]
+                if len(lightcurve[np.isfinite(lightcurve['flux']*lightcurve['flux_err'])])!=0
 
 
-                if principal_components !=0:
-                    rcc = lk.RegressionCorrector(lightcurve)
-                    lc = rcc.correct(self.dm.append_constant())
+                    if principal_components !=0:
+                        rcc = lk.RegressionCorrector(lightcurve)
+                        lc = rcc.correct(self.dm.append_constant())
+                    else:
+                        lc=lightcurve
+                    #lc = lc.remove_outliers()
+
+                    bestfit = Obtain_Final_Fit(self.tpf,lc,self.frequency_list,self.final_phases)
+                    heat = np.asarray([bestfit.best_values['f{0:d}amp'.format(n)] for n in np.arange(len(self.frequency_list))])
+                    heat_error =  np.asarray([bestfit.params['f{0:d}amp'.format(n)].stderr for n in np.arange(len(self.frequency_list))])
+
+                    #Extending the list of fitting data for each pixel
+                    heats.extend([heat])
+                    heats_error.extend([heat_error])
                 else:
-                    lc=lightcurve
-                #lc = lc.remove_outliers()
-                              
-                bestfit = Obtain_Final_Fit(self.tpf,lc,self.frequency_list,self.final_phases)
-                heat = np.asarray([bestfit.best_values['f{0:d}amp'.format(n)] for n in np.arange(len(self.frequency_list))])
-                heat_error =  np.asarray([bestfit.params['f{0:d}amp'.format(n)].stderr for n in np.arange(len(self.frequency_list))])
-                
-                #Extending the list of fitting data for each pixel
-                heats.extend([heat])
-                heats_error.extend([heat_error])
+                    heats.extend([np.nan])
+                    heats_error.extend([np.nan])
                     
         heats = np.asarray(heats)
         heats_error = np.asarray(heats_error)

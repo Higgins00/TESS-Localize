@@ -231,7 +231,7 @@ class Localize:
         self.aperture = aperture
         self.frequency_list = np.asarray((frequencies*frequnit).to(1/u.d))
         self.principal_components = principal_components
-        if mask ==None:
+        if mask is None:
             self.mask =mask
         else:
             self.mask=mask

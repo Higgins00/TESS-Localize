@@ -231,7 +231,10 @@ class Localize:
         self.aperture = aperture
         self.frequency_list = np.asarray((frequencies*frequnit).to(1/u.d))
         self.principal_components = principal_components
-        if (mask !=None).any():
+        if mask ==None:
+            self.mask =mask
+        else:
+            self.mask=mask
             for i in range(len(tpf.hdu[1].data["FLUX"])):
                 self.tpf.hdu[1].data["FLUX"][i][mask] = np.nan
             

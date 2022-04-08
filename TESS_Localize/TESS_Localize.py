@@ -235,7 +235,7 @@ class Localize:
             self.mask =mask
         else:
             self.mask=mask
-            for i in range(len(tpf.hdu[1].data["FLUX"])):
+            for i in range(len(self.tpf.hdu[1].data["FLUX"])):
                 self.tpf.hdu[1].data["FLUX"][i][mask] = np.nan
             
             

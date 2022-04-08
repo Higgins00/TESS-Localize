@@ -527,8 +527,8 @@ class Localize:
                     heats.extend([heat])
                     heats_error.extend([heat_error])
                 else:
-                    heats.extend([np.nan])
-                    heats_error.extend([np.nan])
+                    heats.extend([np.ones(len(self.frequency_list))*np.nan])
+                    heats_error.extend([np.ones(len(self.frequency_list))*np.nan])
                     
         heats = np.asarray(heats)
         heats_error = np.asarray(heats_error)

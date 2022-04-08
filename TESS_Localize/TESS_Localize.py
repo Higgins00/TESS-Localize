@@ -176,6 +176,8 @@ class Localize:
         Number of components used in PCA for TPF lightcurve, or 'auto' for automatic determination.
     aperture: 2D Boolean array, or 'auto'
         If not specified user the TPF.pipeline_mask will be used, if a user specified aperture is used it must be the same shape as the TPF.
+    mask: 2D Boolean array, or None
+        Mask of pixels to ignore in the fitting method.
 
     Returns
     ----------
@@ -221,7 +223,7 @@ class Localize:
     
     def __init__(self, targetpixelfile, gaia=True, magnitude_limit=18, 
                  frequencies=[], frequnit=u.uHz, principal_components = 'auto', 
-                 aperture=None, method = 'PRF', sigma=None, **kwargs):
+                 aperture=None, method = 'PRF', sigma=None, mask=None **kwargs):
         
         self.tpf = targetpixelfile
         self.method = method
@@ -229,36 +231,40 @@ class Localize:
         self.aperture = aperture
         self.frequency_list = np.asarray((frequencies*frequnit).to(1/u.d))
         self.principal_components = principal_components
+        if mask !=None:
+            for i in range(len(tpf.hdu[1].data["FLUX"])):
+                self.tpf.hdu[1].data["FLUX"][i][mask] = np.nan
             
+            
+        def frequency_aperture(tpf,frequencies,frequnits = 1/u.d):
+            heat = np.empty((tpf.shape[1],tpf.shape[2]))
+            heat[:]=np.nan
+            #Iterating through columns of pixels
+
+            for i in np.arange(0,tpf.shape[1]):
+
+                #Iterating through rows of pixels
+                for j in np.arange(0,tpf.shape[2]):
+
+
+                    #Making an empty 2-d array
+                    mask = np.zeros((tpf.shape[1],tpf.shape[2]), dtype=bool)
+
+                    #Iterating to isolate pixel by pixel to get light curves
+                    mask[i][j] = True
+
+                    #Getting the light curve for a pixel and excluding any flagged data
+                    lightcurve = tpf.to_lightcurve(aperture_mask=mask)
+                    lightcurve = lightcurve[np.isfinite(lightcurve['flux']*lightcurve['flux_err'])]
+                    lightcurve = lightcurve[np.where(lightcurve[np.isfinite(lightcurve['flux']*lightcurve['flux_err'])].quality==0)]
+                    pg = lightcurve.to_periodogram(frequency = frequencies,freq_unit = frequnits,ls_method='slow')
+
+                    heat[i][j] = np.sum(pg.power.value**2)**(1/2)
+            return heat>np.mean(heat)+2*np.std(heat)
         if self.aperture is None:
             self.aperture = targetpixelfile.pipeline_mask
             if (targetpixelfile.pipeline_mask.any() == False):
                 #will add a flag here if no aperture
-                def frequency_aperture(tpf,frequencies,frequnits = 1/u.d):
-                    heat = np.empty((tpf.shape[1],tpf.shape[2]))
-                    heat[:]=np.nan
-                    #Iterating through columns of pixels
-
-                    for i in np.arange(0,tpf.shape[1]):
-
-                        #Iterating through rows of pixels
-                        for j in np.arange(0,tpf.shape[2]):
-
-
-                            #Making an empty 2-d array
-                            mask = np.zeros((tpf.shape[1],tpf.shape[2]), dtype=bool)
-
-                            #Iterating to isolate pixel by pixel to get light curves
-                            mask[i][j] = True
-
-                            #Getting the light curve for a pixel and excluding any flagged data
-                            lightcurve = tpf.to_lightcurve(aperture_mask=mask)
-                            lightcurve = lightcurve[np.isfinite(lightcurve['flux']*lightcurve['flux_err'])]
-                            lightcurve = lightcurve[np.where(lightcurve[np.isfinite(lightcurve['flux']*lightcurve['flux_err'])].quality==0)]
-                            pg = lightcurve.to_periodogram(frequency = frequencies,freq_unit = frequnits,ls_method='slow')
-
-                            heat[i][j] = np.sum(pg.power.value**2)**(1/2)
-                    return heat>np.mean(heat)+2*np.std(heat)
                 self.aperture = frequency_aperture(tpf=self.tpf,frequencies = frequencies, frequnits = frequnit)
                     
         if aperture =='auto':
@@ -789,7 +795,7 @@ class Localize:
         freq = self.frequency_list
         phase = self.final_phases
         fit = 0
-        for i in range(len(low.frequency_list)):
+        for i in range(len(self.frequency_list)):
             fit += self.result.params[self.result.var_names[:-2][i]].value*np.sin(2*np.pi*freq[i]*times + phase[i])
         
         plt.scatter(times,flux,s=.5,label='Lightcurve')

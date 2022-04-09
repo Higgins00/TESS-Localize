@@ -281,7 +281,7 @@ class Localize:
             self.raw_lc1 = self.tpf.to_lightcurve(aperture_mask=self.aperture)
             self.quality_mask = [np.isfinite(self.raw_lc1['flux']*self.raw_lc1['flux_err'])]
             if self.principal_components !=0:
-                self.dm = lk.DesignMatrix(self.tpf.flux[:,~self.aperture][np.isfinite(self.raw_lc1['flux']*self.raw_lc1['flux_err']),:][np.where(self.raw_lc1[self.quality_mask[0]].quality ==0)[0],:], name='regressors').pca(self.principal_components)
+                self.dm = lk.DesignMatrix(self.tpf.flux[:,~(self.aperture|self.mask)][np.isfinite(self.raw_lc1['flux']*self.raw_lc1['flux_err']),:][np.where(self.raw_lc1[self.quality_mask[0]].quality ==0)[0],:], name='regressors').pca(self.principal_components)
                 self.raw_lc = self.raw_lc1[self.quality_mask[0]]
                 self.raw_lc = self.raw_lc[np.where(self.raw_lc1[self.quality_mask[0]].quality ==0)]
 
@@ -322,7 +322,7 @@ class Localize:
         self.raw_lc1 = self.tpf.to_lightcurve(aperture_mask=self.aperture)
         self.quality_mask = [np.isfinite(self.raw_lc1['flux']*self.raw_lc1['flux_err'])]
         if self.principal_components !=0:
-            self.dm = lk.DesignMatrix(self.tpf.flux[:,~self.aperture][np.isfinite(self.raw_lc1['flux']*self.raw_lc1['flux_err']),:][np.where(self.raw_lc1[self.quality_mask[0]].quality ==0)[0],:], name='regressors').pca(self.principal_components)
+            self.dm = lk.DesignMatrix(self.tpf.flux[:,~(self.aperture|self.mask)][np.isfinite(self.raw_lc1['flux']*self.raw_lc1['flux_err']),:][np.where(self.raw_lc1[self.quality_mask[0]].quality ==0)[0],:], name='regressors').pca(self.principal_components)
             self.raw_lc = self.raw_lc1[self.quality_mask[0]]
             self.raw_lc = self.raw_lc[np.where(self.raw_lc1[self.quality_mask[0]].quality ==0)]
         

@@ -232,9 +232,9 @@ class Localize:
         self.frequency_list = np.asarray((frequencies*frequnit).to(1/u.d))
         self.principal_components = principal_components
         if mask is None:
-            self.mask =mask
+            self.mask = np.array(self.tpf.pipeline_mask*False,bool)
         else:
-            self.mask=mask
+            self.mask= np.array(mask,bool)
             for i in range(len(self.tpf.hdu[1].data["FLUX"])):
                 self.tpf.hdu[1].data["FLUX"][i][mask] = np.nan
             

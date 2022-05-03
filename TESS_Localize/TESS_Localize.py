@@ -549,7 +549,11 @@ class Localize:
             # We are querying with a diameter as the radius, overfilling by 2x.
             from astroquery.vizier import Vizier
             Vizier.ROW_LIMIT = -1
-            result = Vizier.query_region(c1, catalog=["I/345/gaia2"],radius=Angle(np.max(self.tpf.shape[1:]) * pix_scale, "arcsec"))
+            try:
+                result = Vizier.query_region(c1, catalog=["I/345/gaia2"],radius=Angle(np.max(self.tpf.shape[1:]) * pix_scale, "arcsec"))
+            except:
+                result = Vizier.query_region(c1, catalog=["I/345/gaia2"],radius=Angle(np.max(self.tpf.shape[1:]) * pix_scale, "arcsec", cache=False))
+            
 
             no_targets_found_message = ValueError('Either no sources were found in the query region '
                                                       'or Vizier is unavailable')

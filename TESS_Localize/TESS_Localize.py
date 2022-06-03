@@ -636,7 +636,7 @@ class Localize:
                     self.heatmap_error[np.where(self.heatmap_error==None)]=np.nan
                     self.heatmap_error[np.where(self.heatmap_error==0)]=np.nan
                     #reshaping composite heatmap for user to plot
-                    composite_heatmap = self.heat_stamp.sum(axis=0).reshape(self.size) / ((np.nansum(self.heatmap_error**2,axis=0))**(1/2)).reshape(self.size)#issue with numpy using sqrt?
+                    composite_heatmap = self.heat_stamp.sum(axis=0).reshape(self.size)# / ((np.nansum(self.heatmap_error**2,axis=0))**(1/2)).reshape(self.size)#checking for binary analysis
                     c = np.where(composite_heatmap==np.nanmax(composite_heatmap))
 
 
@@ -845,8 +845,8 @@ class Localize:
             plt.imshow(self.heats_error[frequencylist_index].reshape(self.tpf.shape[1:]),origin='lower')
         elif (method=='model'):
             prf = PRF.TESS_PRF(cam = self.tpf.camera, ccd = self.tpf.ccd,
-                               sector = self.tpf.sector, colnum = self.tpf.column+self.size[0]/2.,
-                               rownum = self.tpf.row+self.size[1]/2., **kwargs)
+                               sector = self.tpf.sector, colnum = self.tpf.column+self.tpf.pipeline_mask.shape[0]/2.,
+                               rownum = self.tpf.row+self.tpf.pipeline_mask.shape[1]/2., **kwargs)
             model = prf.locate(self.location[0],self.location[1], self.tpf.shape[1:])
             plt.imshow(model,origin='lower')
         

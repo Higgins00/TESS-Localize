@@ -761,7 +761,7 @@ class Localize:
         if (np.asarray([self.result.params['height{0:d}'.format(j)].stderr for j in np.arange(len(self.frequency_list))]) / np.asarray([self.result.params['height{0:d}'.format(j)].value for j in np.arange(len(self.frequency_list))])>.2).any():
             #possibly reword this
             warnings.warn('Frequencies used may not all belong to the same source and provided fit could be unreliable')
-        if ((self.location[0]<0) and (self.location[0]>tpf.shape[1])) or ((self.location[1]<0) and (self.location[1]>tpf.shape[2])):
+        if ((self.location[0]<0) and (self.location[0]>self.tpf.shape[1])) or ((self.location[1]<0) and (self.location[1]>self.tpf.shape[2])):
             warnings.warn('Source fit to a location outside the TPF, refitting using a TPF centered around source is recommended')
     
     def pca(self):
@@ -792,7 +792,7 @@ class Localize:
         
         """
         plt.figure(figsize = (figuresize))
-        if (lightcurve_aperture==None):
+        if (lightcurve_aperture is None):
             lightcurve_aperture = self.maxsignal_aperture
         lightcurve = self.tpf.to_lightcurve(aperture_mask=lightcurve_aperture)
         lightcurve = lightcurve[self.quality_mask[0]]
@@ -846,7 +846,7 @@ class Localize:
         elif (method=='model'):
             prf = PRF.TESS_PRF(cam = self.tpf.camera, ccd = self.tpf.ccd,
                                sector = self.tpf.sector, colnum = self.tpf.column+self.tpf.pipeline_mask.shape[0]/2.,
-                               rownum = self.tpf.row+self.tpf.pipeline_mask.shape[1]/2., **kwargs)
+                               rownum = self.tpf.row+self.tpf.pipeline_mask.shape[1]/2.)
             model = prf.locate(self.location[0],self.location[1], self.tpf.shape[1:])
             plt.imshow(model,origin='lower')
         

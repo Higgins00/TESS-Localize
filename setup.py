@@ -5,7 +5,7 @@ with open("requirements.txt", "r") as fh:
     
 
 setup(name='TESS_Localize',
-version='0.5.0',
+version='0.6.0',
 description='Package for localizing variable stars in TESS Photometry',
 url='https://github.com/Higgins00/TESS-Localize',
 author='Michael Higgins',

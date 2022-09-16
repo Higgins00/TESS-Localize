@@ -5,15 +5,15 @@ import warnings
 from copy import copy
 import numpy as np
 from astropy.coordinates import SkyCoord, Angle
+from astropy.time import Time
 import astropy.units as u
 import matplotlib.pyplot as plt
 import pandas as pd
 import lightkurve as lk
-from astropy import units as u
 import lmfit as lm
 from lmfit import Minimizer, Parameters, report_fit
 import PRF
-import sys
+#import sys
 import pygmmis
 import pkg_resources
 
@@ -564,15 +564,22 @@ class Localize:
                 raise no_targets_found_message
             elif len(result) == 0:
                 raise too_few_found_message
+                
+            #Record reference epoch for Gaia source positions
+            gaiarefepoch = str(result[0].info).split('at Ep=')[1][:6] #From column description
+            
             result = result[gaia_catalog].to_pandas()
 
             result = result[result.Gmag < magnitude_limit]
+            
             if len(result) == 0:
                 raise no_targets_found_message
-
-            year = ((self.tpf.time[0].jd - 2457206.375) * u.day).to(u.year)
-            pmra = ((np.nan_to_num(np.asarray(result.pmRA)) * u.milliarcsecond/u.year) * year).to(u.deg).value
-            pmdec = ((np.nan_to_num(np.asarray(result.pmDE)) * u.milliarcsecond/u.year) * year).to(u.deg).value
+            
+            # Propagate star positions by proper motions
+            referenceyear = Time(gaiarefepoch, format='decimalyear', scale='utc')
+            deltayear = (self.tpf.time[0] - referenceyear).to(u.year)
+            pmra = ((np.nan_to_num(np.asarray(result.pmRA)) * u.milliarcsecond/u.year) * deltayear).to(u.deg).value
+            pmdec = ((np.nan_to_num(np.asarray(result.pmDE)) * u.milliarcsecond/u.year) * deltayear).to(u.deg).value
             result.RA_ICRS += pmra
             result.DE_ICRS += pmdec
             radecs = np.vstack([result['RA_ICRS'], result['DE_ICRS']]).T

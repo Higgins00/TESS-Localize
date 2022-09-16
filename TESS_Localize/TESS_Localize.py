@@ -217,13 +217,15 @@ class Localize:
         Result parameters of the fit. Use report_fit(self.report) to view.
     self.maxsignal_aperture
         Aperture mask for the pixel with the greatest SNR
-    
-    
+    self.gaia_catalog
+        Name of the Gaia catalog to query for source locations on Vizier. 
+        Defaults to Gaia DR3.
     """
     
     def __init__(self, targetpixelfile, gaia=True, magnitude_limit=18, 
                  frequencies=[], frequnit=u.uHz, principal_components = 'auto', 
-                 aperture=None, method = 'PRF', sigma=None, mask=None, **kwargs):
+                 aperture=None, method = 'PRF', sigma=None, mask=None, 
+                 gaia_catalog='I/355/gaiadr3', **kwargs):
         
         self.tpf = targetpixelfile
         self.method = method
@@ -550,9 +552,9 @@ class Localize:
             from astroquery.vizier import Vizier
             Vizier.ROW_LIMIT = -1
             try:
-                result = Vizier.query_region(c1, catalog=["I/345/gaia2"],radius=Angle(np.max(self.tpf.shape[1:]) * pix_scale, "arcsec"))
+                result = Vizier.query_region(c1, catalog=[gaia_catalog],radius=Angle(np.max(self.tpf.shape[1:]) * pix_scale, "arcsec"))
             except:
-                result = Vizier.query_region(c1, catalog=["I/345/gaia2"],radius=Angle(np.max(self.tpf.shape[1:]) * pix_scale, "arcsec"), cache=False)
+                result = Vizier.query_region(c1, catalog=[gaia_catalog],radius=Angle(np.max(self.tpf.shape[1:]) * pix_scale, "arcsec"), cache=False)
             
 
             no_targets_found_message = ValueError('Either no sources were found in the query region '
@@ -562,7 +564,7 @@ class Localize:
                 raise no_targets_found_message
             elif len(result) == 0:
                 raise too_few_found_message
-            result = result["I/345/gaia2"].to_pandas()
+            result = result[gaia_catalog].to_pandas()
 
             result = result[result.Gmag < magnitude_limit]
             if len(result) == 0:

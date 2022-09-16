@@ -746,6 +746,7 @@ class Localize:
         self.location_skycoord = self.tpf.wcs.all_pix2world([self.location], 0)[0]
         self.heatmap = self.heats.sum(axis=0).reshape(self.aperture.shape[0],self.aperture.shape[1]) / np.sqrt((self.heats_error**2).sum(axis=0)).reshape(self.aperture.shape[0],self.aperture.shape[1])
         self.maxsignal_aperture = self.heatmap == np.nanmax(self.heatmap)
+        self.error_model = fh.error_model
         self.result = fh.result
         
         

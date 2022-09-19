@@ -3,6 +3,8 @@ Code for localizing variable star signatures in TESS Photometry.
 
 The primary use of this package is to identify the location on the TPF where sources of variablity found in the aperture originate. The user only needs to provide a list of frequencies found in the aperture that belong to the same source and the number of principal components needed to be removed from the light curve to ensure it is free of systematic trends. A more detailed usage example can be found in the examples folder.
 
+See the paper describing the methodology behind this software [on ADS](https://ui.adsabs.harvard.edu/abs/2022arXiv220406020H/abstract).
+
 ## Installation 
 
 To install use 

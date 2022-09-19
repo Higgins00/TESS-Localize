@@ -5,15 +5,15 @@ import warnings
 from copy import copy
 import numpy as np
 from astropy.coordinates import SkyCoord, Angle
+from astropy.time import Time
 import astropy.units as u
 import matplotlib.pyplot as plt
 import pandas as pd
 import lightkurve as lk
-from astropy import units as u
 import lmfit as lm
 from lmfit import Minimizer, Parameters, report_fit
 import PRF
-import sys
+#import sys
 import pygmmis
 import pkg_resources
 
@@ -217,13 +217,15 @@ class Localize:
         Result parameters of the fit. Use report_fit(self.report) to view.
     self.maxsignal_aperture
         Aperture mask for the pixel with the greatest SNR
-    
-    
+    self.gaia_catalog
+        Name of the Gaia catalog to query for source locations on Vizier. 
+        Defaults to Gaia DR3.
     """
     
     def __init__(self, targetpixelfile, gaia=True, magnitude_limit=18, 
                  frequencies=[], frequnit=u.uHz, principal_components = 'auto', 
-                 aperture=None, method = 'PRF', sigma=None, mask=None, **kwargs):
+                 aperture=None, method = 'PRF', sigma=None, mask=None, 
+                 gaia_catalog='I/355/gaiadr3', **kwargs):
         
         self.tpf = targetpixelfile
         self.method = method
@@ -550,9 +552,9 @@ class Localize:
             from astroquery.vizier import Vizier
             Vizier.ROW_LIMIT = -1
             try:
-                result = Vizier.query_region(c1, catalog=["I/345/gaia2"],radius=Angle(np.max(self.tpf.shape[1:]) * pix_scale, "arcsec"))
+                result = Vizier.query_region(c1, catalog=[gaia_catalog],radius=Angle(np.max(self.tpf.shape[1:]) * pix_scale, "arcsec"))
             except:
-                result = Vizier.query_region(c1, catalog=["I/345/gaia2"],radius=Angle(np.max(self.tpf.shape[1:]) * pix_scale, "arcsec"), cache=False)
+                result = Vizier.query_region(c1, catalog=[gaia_catalog],radius=Angle(np.max(self.tpf.shape[1:]) * pix_scale, "arcsec"), cache=False)
             
 
             no_targets_found_message = ValueError('Either no sources were found in the query region '
@@ -562,15 +564,22 @@ class Localize:
                 raise no_targets_found_message
             elif len(result) == 0:
                 raise too_few_found_message
-            result = result["I/345/gaia2"].to_pandas()
+                
+            #Record reference epoch for Gaia source positions
+            gaiarefepoch = str(result[0].info).split('at Ep=')[1][:6] #From column description
+            
+            result = result[gaia_catalog].to_pandas()
 
             result = result[result.Gmag < magnitude_limit]
+            
             if len(result) == 0:
                 raise no_targets_found_message
-
-            year = ((self.tpf.time[0].jd - 2457206.375) * u.day).to(u.year)
-            pmra = ((np.nan_to_num(np.asarray(result.pmRA)) * u.milliarcsecond/u.year) * year).to(u.deg).value
-            pmdec = ((np.nan_to_num(np.asarray(result.pmDE)) * u.milliarcsecond/u.year) * year).to(u.deg).value
+            
+            # Propagate star positions by proper motions
+            referenceyear = Time(gaiarefepoch, format='decimalyear', scale='utc')
+            deltayear = (self.tpf.time[0] - referenceyear).to(u.year)
+            pmra = ((np.nan_to_num(np.asarray(result.pmRA)) * u.milliarcsecond/u.year) * deltayear).to(u.deg).value
+            pmdec = ((np.nan_to_num(np.asarray(result.pmDE)) * u.milliarcsecond/u.year) * deltayear).to(u.deg).value
             result.RA_ICRS += pmra
             result.DE_ICRS += pmdec
             radecs = np.vstack([result['RA_ICRS'], result['DE_ICRS']]).T
@@ -737,6 +746,7 @@ class Localize:
         self.location_skycoord = self.tpf.wcs.all_pix2world([self.location], 0)[0]
         self.heatmap = self.heats.sum(axis=0).reshape(self.aperture.shape[0],self.aperture.shape[1]) / np.sqrt((self.heats_error**2).sum(axis=0)).reshape(self.aperture.shape[0],self.aperture.shape[1])
         self.maxsignal_aperture = self.heatmap == np.nanmax(self.heatmap)
+        self.error_model = fh.error_model
         self.result = fh.result
         
         

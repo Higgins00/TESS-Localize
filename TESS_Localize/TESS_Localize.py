@@ -13,6 +13,7 @@ import lightkurve as lk
 import lmfit as lm
 from lmfit import Minimizer, Parameters, report_fit
 import PRF
+from scipy.interpolate import interp1d
 #import sys
 import pygmmis
 import pkg_resources
@@ -21,7 +22,7 @@ import pkg_resources
 
 class PCA:
     """Class designed to give users access to analysis functions.
-    
+
     Parameters
     ----------
     targetpixelfile : targetpixelfile object
@@ -49,21 +50,21 @@ class PCA:
         List of frequencies used.
     self.autopca
         Automatically determined best number of principal components to remove.
-        
-    
-    
+
+
+
     """
-    
+
     def __init__(self, targetpixelfile,
-                 frequencies=[], frequnit=u.uHz, principal_components = 5, 
+                 frequencies=[], frequnit=u.uHz, principal_components = 5,
                  aperture=None):
-        
+
         self.tpf = targetpixelfile
         #Defining an aperture that will be used in plotting and making empty 2-d arrays of the correct size for masks
         self.aperture = aperture
         self.principal_components = principal_components
         self.frequency_list = np.asarray((frequencies*frequnit).to(1/u.d))
-            
+
         if self.aperture is None:
             self.aperture = targetpixelfile.pipeline_mask
             if (targetpixelfile.pipeline_mask.any() == False):
@@ -94,11 +95,11 @@ class PCA:
                             heat[i][j] = np.sum(pg.power.value**2)**(1/2)
                     return heat>np.mean(heat)+2*np.std(heat)
                 self.aperture = frequency_aperture(tpf=self.tpf,frequencies = frequencies, frequnits = frequnit)
-                    
+
         if aperture =='auto':
             self.aperture = frequency_aperture(tpf=self.tpf,frequencies = frequencies, frequnits = frequnit)
-    
-        
+
+
         # Make a design matrix and pass it to a linear regression corrector
         self.raw_lc1 = self.tpf.to_lightcurve(aperture_mask=self.aperture)
         self.quality_mask = [np.isfinite(self.raw_lc1['flux']*self.raw_lc1['flux_err'])]
@@ -106,7 +107,7 @@ class PCA:
             self.dm = lk.DesignMatrix(self.tpf.flux[:,~self.tpf.pipeline_mask][np.isfinite(self.raw_lc1['flux']*self.raw_lc1['flux_err']),:][np.where(self.raw_lc1[self.quality_mask[0]].quality ==0)[0],:], name='regressors').pca(principal_components)
             self.raw_lc = self.raw_lc1[self.quality_mask[0]]
             self.raw_lc = self.raw_lc[np.where(self.raw_lc1[self.quality_mask[0]].quality ==0)]
-        
+
             rc = lk.RegressionCorrector(self.raw_lc)
             self.corrected_lc = rc.correct(self.dm.append_constant())
         else:
@@ -160,7 +161,7 @@ class PCA:
 
 class Localize:
     """Class designed to give users access to analysis functions.
-    
+
     Parameters
     ----------
     targetpixelfile : targetpixelfile object
@@ -218,15 +219,15 @@ class Localize:
     self.maxsignal_aperture
         Aperture mask for the pixel with the greatest SNR
     self.gaia_catalog
-        Name of the Gaia catalog to query for source locations on Vizier. 
+        Name of the Gaia catalog to query for source locations on Vizier.
         Defaults to Gaia DR3.
     """
-    
-    def __init__(self, targetpixelfile, gaia=True, magnitude_limit=18, 
-                 frequencies=[], frequnit=u.uHz, principal_components = 'auto', 
-                 aperture=None, method = 'PRF', sigma=None, mask=None, 
+
+    def __init__(self, targetpixelfile, gaia=True, magnitude_limit=18,
+                 frequencies=[], frequnit=u.uHz, principal_components = 'auto',
+                 aperture=None, method = 'PRF', sigma=None, mask=None,
                  gaia_catalog='I/355/gaiadr3', **kwargs):
-        
+
         self.tpf = targetpixelfile
         self.method = method
         #Defining an aperture that will be used in plotting and making empty 2-d arrays of the correct size for masks
@@ -239,8 +240,8 @@ class Localize:
             self.mask= np.array(mask,bool)
             for i in range(len(self.tpf.hdu[1].data["FLUX"])):
                 self.tpf.hdu[1].data["FLUX"][i][mask] = np.nan
-            
-            
+
+
         def frequency_aperture(tpf,frequencies,frequnits = 1/u.d):
             heat = np.empty((tpf.shape[1],tpf.shape[2]))
             heat[:]=np.nan
@@ -274,10 +275,10 @@ class Localize:
             if (targetpixelfile.pipeline_mask.any() == False):
                 #will add a flag here if no aperture
                 self.aperture = frequency_aperture(tpf=self.tpf,frequencies = frequencies, frequnits = frequnit)
-                    
+
         if aperture =='auto':
             self.aperture = frequency_aperture(tpf=self.tpf,frequencies = frequencies, frequnits = frequnit)
-            
+
         if principal_components == 'auto':
             self.principal_components = 5
             self.raw_lc1 = self.tpf.to_lightcurve(aperture_mask=self.aperture)
@@ -312,14 +313,14 @@ class Localize:
                 mini = np.min(np.array(fails))-1
 
             self.principal_components = mini
-        
+
         if self.aperture is None:
             self.aperture = targetpixelfile.pipeline_mask
             if targetpixelfile.pipeline_mask.any() == False:
                 #will add a flag here if no aperture
                 self.aperture = self.tpf.create_threshold_mask()
-    
-        
+
+
         # Make a design matrix and pass it to a linear regression corrector
         self.raw_lc1 = self.tpf.to_lightcurve(aperture_mask=self.aperture)
         self.quality_mask = [np.isfinite(self.raw_lc1['flux']*self.raw_lc1['flux_err'])]
@@ -327,18 +328,18 @@ class Localize:
             self.dm = lk.DesignMatrix(self.tpf.flux[:,~(self.aperture|self.mask)][np.isfinite(self.raw_lc1['flux']*self.raw_lc1['flux_err']),:][np.where(self.raw_lc1[self.quality_mask[0]].quality ==0)[0],:], name='regressors').pca(self.principal_components)
             self.raw_lc = self.raw_lc1[self.quality_mask[0]]
             self.raw_lc = self.raw_lc[np.where(self.raw_lc1[self.quality_mask[0]].quality ==0)]
-        
+
             rc = lk.RegressionCorrector(self.raw_lc)
             self.corrected_lc = rc.correct(self.dm.append_constant())
         else:
             self.raw_lc = self.raw_lc1[self.quality_mask[0]]
             self.raw_lc = self.raw_lc[np.where(self.raw_lc1[self.quality_mask[0]].quality ==0)]
             self.corrected_lc = self.raw_lc
-            
+
         #self.corrected_lc = corrected_lc.remove_outliers()
-        
-        
-        
+
+
+
         def Obtain_Initial_Phase(tpf,corrected_lc,frequency_list):
             flux = corrected_lc.flux.value
             times = corrected_lc.time.value - np.nanmean(corrected_lc.time.value)
@@ -370,7 +371,7 @@ class Localize:
                 params['f{0:d}phase'.format(j)].set(value = initial_phase[j])
                 params['f{0:d}phase'.format(j)].set(brute_step=np.pi/10)
                 result = model.fit(corrected_lc.flux.value,params,time=times,method = 'brute')
-                initial_phase[j]=result.best_values['f{0:d}phase'.format(j)]    
+                initial_phase[j]=result.best_values['f{0:d}phase'.format(j)]
 
             return initial_phase
 
@@ -392,7 +393,7 @@ class Localize:
 #                 for i in np.arange(len(frequency_list)):
 
 #                     if (i == 0):
-#                         model = lm.Model(lc_model,independent_vars=['time'],prefix='f{0:d}'.format(i)) 
+#                         model = lm.Model(lc_model,independent_vars=['time'],prefix='f{0:d}'.format(i))
 #                         model += lm.Model(background_model, independent_vars=['time'])
 #                     else:
 #                         model += lm.Model(lc_model,independent_vars=['time'],prefix='f{0:d}'.format(i))
@@ -413,9 +414,9 @@ class Localize:
 #                 initial_phase[j]=result.best_values['f{0:d}phase'.format(j)]
 
             #return initial_phase
-        
+
         self.initial_phases = Obtain_Initial_Phase(self.tpf,self.corrected_lc,self.frequency_list)
-        
+
         def Obtain_Final_Phase(tpf,corrected_lc,frequency_list,initial_phases):
 
             flux = corrected_lc.flux.value
@@ -433,7 +434,7 @@ class Localize:
             for i in np.arange(len(frequency_list)):
 
                 if (i == 0):
-                    model = lm.Model(lc_model,independent_vars=['time'],prefix='f{0:d}'.format(i)) 
+                    model = lm.Model(lc_model,independent_vars=['time'],prefix='f{0:d}'.format(i))
                     model += lm.Model(background_model, independent_vars=['time'])
                 else:
                     model += lm.Model(lc_model,independent_vars=['time'],prefix='f{0:d}'.format(i))
@@ -448,14 +449,14 @@ class Localize:
             params = model.make_params()
 
             result = model.fit(corrected_lc.flux.value,params,time=times,weights=1/corrected_lc.flux_err.value)
-            
+
             final_phases = [result.best_values['f{0:d}phase'.format(j)] for j in np.arange(len(frequency_list))]
 
-    
+
             return final_phases
 
         self.final_phases = Obtain_Final_Phase(self.tpf,self.corrected_lc,self.frequency_list,self.initial_phases)
-    
+
         def Obtain_Final_Fit(tpf,corrected_lc,frequency_list,final_phases):
 
             flux = corrected_lc.flux.value
@@ -473,7 +474,7 @@ class Localize:
             for i in np.arange(len(frequency_list)):
 
                 if (i == 0):
-                    model = lm.Model(lc_model,independent_vars=['time'],prefix='f{0:d}'.format(i)) 
+                    model = lm.Model(lc_model,independent_vars=['time'],prefix='f{0:d}'.format(i))
                     model += lm.Model(background_model, independent_vars=['time'])
                 else:
                     model += lm.Model(lc_model,independent_vars=['time'],prefix='f{0:d}'.format(i))
@@ -488,25 +489,25 @@ class Localize:
             params = model.make_params()
 
             result = model.fit(corrected_lc.flux.value,params,time=times,weights=1/corrected_lc.flux_err.value)
-            
+
             return result
-        
-        
+
+
         heats = []
         heats_error =[]
         #Iterating through columns of pixels
         for i in np.arange(0,len(self.aperture)):
-            
+
             #Iterating through rows of pixels
             for j in np.arange(0,len(self.aperture[0])):
-                
-                
+
+
                 #Making an empty 2-d array
                 mask = np.zeros((len(self.aperture),len(self.aperture[0])), dtype=bool)
-                
+
                 #Iterating to isolate pixel by pixel to get light curves
                 mask[i][j] = True
-                
+
                 #Getting the light curve for a pixel and excluding any flagged data
                 lightcurve = self.tpf.to_lightcurve(aperture_mask=mask)
                 lightcurve = lightcurve[self.quality_mask[0]]
@@ -531,15 +532,15 @@ class Localize:
                 else:
                     heats.extend([np.ones(len(self.frequency_list))*np.nan])
                     heats_error.extend([np.ones(len(self.frequency_list))*np.nan])
-                    
+
         heats = np.asarray(heats)
         heats_error = np.asarray(heats_error)
         self.heats = heats.T
         self.heats_error = heats_error.T
-        
+
         self.timeserieslength = (self.tpf.time.max()-self.tpf.time.min()).value
         self.gaiadata = None
-        
+
         if (gaia == True):
             """Make the Gaia Figure Elements"""
             # Get the positions of the Gaia sources
@@ -555,7 +556,7 @@ class Localize:
                 result = Vizier.query_region(c1, catalog=[gaia_catalog],radius=Angle(np.max(self.tpf.shape[1:]) * pix_scale, "arcsec"))
             except:
                 result = Vizier.query_region(c1, catalog=[gaia_catalog],radius=Angle(np.max(self.tpf.shape[1:]) * pix_scale, "arcsec"), cache=False)
-            
+
 
             no_targets_found_message = ValueError('Either no sources were found in the query region '
                                                       'or Vizier is unavailable')
@@ -564,17 +565,17 @@ class Localize:
                 raise no_targets_found_message
             elif len(result) == 0:
                 raise too_few_found_message
-                
+
             #Record reference epoch for Gaia source positions
             gaiarefepoch = str(result[0].info).split('at Ep=')[1][:6] #From column description
-            
+
             result = result[gaia_catalog].to_pandas()
 
             result = result[result.Gmag < magnitude_limit]
-            
+
             if len(result) == 0:
                 raise no_targets_found_message
-            
+
             # Propagate star positions by proper motions
             referenceyear = Time(gaiarefepoch, format='decimalyear', scale='utc')
             deltayear = (self.tpf.time[0] - referenceyear).to(u.year)
@@ -583,7 +584,7 @@ class Localize:
             result.RA_ICRS += pmra
             result.DE_ICRS += pmdec
             radecs = np.vstack([result['RA_ICRS'], result['DE_ICRS']]).T
-            coords = self.tpf.wcs.all_world2pix(radecs, 0) 
+            coords = self.tpf.wcs.all_world2pix(radecs, 0)
 
 
 
@@ -602,7 +603,7 @@ class Localize:
 
 
             self.gaiadata = source
-        
+
         class frequency_heatmap:
 
             def __init__(self,tpf,heats,heats_error,frequencies,gaia_data,method):
@@ -614,13 +615,13 @@ class Localize:
                 self.tpf = tpf
                 self.method = method
             def location(self):
-                
+
                 if self.method == 'PRF':
-                    
+
                     self.prf = PRF.TESS_PRF(cam = self.tpf.camera, ccd = self.tpf.ccd,
-                                        sector = self.tpf.sector, 
+                                        sector = self.tpf.sector,
                                         colnum = self.tpf.column+self.size[0]/2.,
-                                        rownum = self.tpf.row+self.size[1]/2., 
+                                        rownum = self.tpf.row+self.size[1]/2.,
                                         **kwargs)
                     #self.prf = PRF.Gaussian_PRF(sigma)
 
@@ -652,7 +653,7 @@ class Localize:
                     params = Parameters()
                     for i in np.arange(len(frequencies)):#
                         params.add('height{0:d}'.format(i), value=np.nanmax(self.heat_stamp[i]))
-                    params.add('column', value=c[1][0])#c[0]) 
+                    params.add('column', value=c[1][0])#c[0])
                     params.add('row', value=c[0][0])#c[1])
                     #params.add('sigma', value=1)
                 else:
@@ -667,7 +668,7 @@ class Localize:
 
                         x = params['column']
                         y = params['row']
-                        
+
                         res = []
                         for i in np.arange(len(frequencies)):
                             height = params['height{0:d}'.format(i)]
@@ -691,8 +692,8 @@ class Localize:
                         params.add('height{0:d}'.format(i), value=np.nanmax(self.heat_stamp[i]))
                     params.add('column', value=c[1][0])
                     params.add('row', value=c[0][0])
-                    
-                    
+
+
                 #Do the fit
                 minner = Minimizer(residual, params, fcn_args=(self.heat_stamp, self.heatmap_error, self.prf),nan_policy='omit')
                 result = minner.minimize()
@@ -713,8 +714,9 @@ class Localize:
                 self.error_model = copy(error_ext) #extrinsic error
                 self.error_model.covar += self.result.covar[-2:,-2:] #intrinsic error
                 self.error_model.mean += [self.x,self.y] #Locate relative to best-fit position
+                self.error_model.amp /= np.sum(self.error_model.amp) #Normalize amplitudes
                 self.logL = self.error_model.logL
-                
+
             def star_list(self):
                 gaia_data = self.gaiadata
                 no_gaia_data_message = ValueError('No gaia data initialized in PixelMapPeriodogram class')
@@ -731,32 +733,55 @@ class Localize:
                                  y = np.asarray(gaia_data['y']),
                                  Gmag = np.asarray(gaia_data['Gmag']),
                                  distance = distances)
-                    #compute likelihoods of gaia sources
+                    #compute p-values for fit location corresponding to star locations
+                    #by interpolating a sampled cumulative integrated density.
+
+                    #sample based on rough scale of error model.
+                    avgscale = np.nanmean(np.sqrt(low.error_model.covar))
+
+                    #sample wide enough, and finely enough
+                    lims = avgscale*10
+                    l = avgscale/10.
+                    x = np.arange(-lims, lims+l, l)
+                    y = np.arange(-lims, lims+l, l)
+                    X, Y = np.meshgrid(x, y)
+                    XX = np.array([X.ravel(), Y.ravel()]).T
+                    Z = self.error_model.logL(XX + low.location)
+                    Z = Z.reshape(X.shape)
+                    #sorting lnL high to low and matching to cumulative sum,
+                    #then interpolate to desired value.
+                    sortlnL = np.sort(Z.flatten())[::-1]
+                    cumsum = np.cumsum(np.exp(sortlnL)*l**2)
+                    #interpolator
+                    getpvalue = interp1d(sortlnL,1-cumsum, bounds_error=False, fill_value = (0,1))
+                    stars['pvalue'] = getpvalue(self.logL(stars[['x','y']].values))
+
+                    #compute relativd likelihoods of gaia sources
                     L = 10**self.logL(np.vstack((gaia_data["x"],gaia_data["y"])).T) #likelihoods
                     L /= np.sum(L) #normalized
                     stars["likelihood"] = L
                     starlist = pd.DataFrame.from_dict(stars)
                     self.stars = starlist.sort_values(by=[r'likelihood'],ascending = False)
-                    
-        
-        fh = frequency_heatmap(self.tpf,self.heats,self.heats_error,self.frequency_list,self.gaiadata,self.method) 
+
+
+        fh = frequency_heatmap(self.tpf,self.heats,self.heats_error,self.frequency_list,self.gaiadata,self.method)
         fh.location()
-        
+
         self.location = [fh.x,fh.y]
         self.location_skycoord = self.tpf.wcs.all_pix2world([self.location], 0)[0]
         self.heatmap = self.heats.sum(axis=0).reshape(self.aperture.shape[0],self.aperture.shape[1]) / np.sqrt((self.heats_error**2).sum(axis=0)).reshape(self.aperture.shape[0],self.aperture.shape[1])
         self.maxsignal_aperture = self.heatmap == np.nanmax(self.heatmap)
         self.error_model = fh.error_model
         self.result = fh.result
-        
-        
 
-        
+
+
+
         if (self.gaiadata is not None):
             fh.star_list()
             self.starfit= fh.stars.reset_index()
 
-    
+
     def info(self):
         plt.imshow(self.heatmap,origin='lower')
         plt.title('SNR')
@@ -773,7 +798,7 @@ class Localize:
             warnings.warn('Frequencies used may not all belong to the same source and provided fit could be unreliable')
         if ((self.location[0]<0) and (self.location[0]>self.tpf.shape[1])) or ((self.location[1]<0) and (self.location[1]>self.tpf.shape[2])):
             warnings.warn('Source fit to a location outside the TPF, refitting using a TPF centered around source is recommended')
-    
+
     def pca(self):
         if self.principal_components==0:
             pass
@@ -789,7 +814,7 @@ class Localize:
                 ax[1].axvline(x = self.frequency_list[i],color='r',linestyle='--',linewidth=1)
             g2 = self.raw_lc.plot(label='Raw light curve')
             self.corrected_lc.plot(ax=g2, label='Corrected light curve')
-            
+
     def plot_lc(self,lightcurve_aperture=None,save = None,figuresize = (10,5)):
         """Plot the amplitude heatmap, snr, errors, or the fit model.
         Parameters
@@ -799,7 +824,7 @@ class Localize:
         save: str, or None
             'filename.png' if you want to save the png of the plot
         figuresize: size of plot
-        
+
         """
         plt.figure(figsize = (figuresize))
         if (lightcurve_aperture is None):
@@ -821,20 +846,20 @@ class Localize:
         fit = 0
         for i in range(len(self.frequency_list)):
             fit += self.result.params[self.result.var_names[:-2][i]].value*np.sin(2*np.pi*freq[i]*times + phase[i])
-        
+
         plt.scatter(times,flux,s=.5,label='Lightcurve')
         plt.plot(times,fit+np.mean(flux),c='r',linestyle='-',lw=1,alpha=.7,label = 'Lightcurve Fit')
 
         plt.xlabel('Time')
         plt.ylabel('Flux')
         plt.legend()
-        
 
-            
+
+
 
         if save != None:
             plt.savefig(save)
-            
+
     def plot(self,frequencylist_index = 0,method = 'amp',save = None,figuresize = (10,10)):
         """Plot the amplitude heatmap, snr, errors, or the fit model.
         Parameters
@@ -844,7 +869,7 @@ class Localize:
         save: str, or None
             'filename.png' if you want to save the png of the plot
         figuresize: size of plot
-        
+
         """
         plt.figure(figsize = (figuresize))
         if (method=='amp'):
@@ -859,11 +884,11 @@ class Localize:
                                rownum = self.tpf.row+self.tpf.pipeline_mask.shape[1]/2.)
             model = prf.locate(self.location[0],self.location[1], self.tpf.shape[1:])
             plt.imshow(model,origin='lower')
-        
+
         if (self.gaiadata != None):
             plt.scatter(self.gaiadata['x'],self.gaiadata['y'],s=self.gaiadata['size']*5,c='white',alpha=.6)
             plt.scatter(self.location[0],self.location[1],marker='X',c ='black',s=70)
-            
+
         plt.xlim(-.5,self.aperture.shape[1]-1+.5)
         plt.ylim(-.5,self.aperture.shape[0]-1+.5)
         if save != None:

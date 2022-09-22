@@ -737,7 +737,7 @@ class Localize:
                     #by interpolating a sampled cumulative integrated density.
 
                     #sample based on rough scale of error model.
-                    avgscale = np.nanmean(np.sqrt(low.error_model.covar))
+                    avgscale = np.nanmean(np.sqrt(self.error_model.covar))
 
                     #sample wide enough, and finely enough
                     lims = avgscale*10
@@ -746,7 +746,7 @@ class Localize:
                     y = np.arange(-lims, lims+l, l)
                     X, Y = np.meshgrid(x, y)
                     XX = np.array([X.ravel(), Y.ravel()]).T
-                    Z = self.error_model.logL(XX + low.location)
+                    Z = self.error_model.logL(XX + self.location)
                     Z = Z.reshape(X.shape)
                     #sorting lnL high to low and matching to cumulative sum,
                     #then interpolate to desired value.

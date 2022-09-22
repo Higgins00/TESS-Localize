@@ -614,7 +614,7 @@ class Localize:
                 self.frequencies= frequencies
                 self.tpf = tpf
                 self.method = method
-            def location(self):
+            def locate(self):
 
                 if self.method == 'PRF':
 
@@ -717,55 +717,10 @@ class Localize:
                 self.error_model.amp /= np.sum(self.error_model.amp) #Normalize amplitudes
                 self.logL = self.error_model.logL
 
-            def star_list(self):
-                gaia_data = self.gaiadata
-                no_gaia_data_message = ValueError('No gaia data initialized in PixelMapPeriodogram class')
-                if gaia_data ==None :
-                    starlist = None
-
-                else:
-                    distances = np.square(self.x-gaia_data['x'])+np.square(self.y-gaia_data['y'])
-                    #closest_star_mask = np.where(np.square(self.x-gaia_data['x'])+np.square(self.y-gaia_data['y'])==(np.square(self.x-gaia_data['x'])+np.square(self.y-gaia_data['y'])).min())
-                    stars = dict(ra = np.asarray(gaia_data['ra']),
-                                 dec = np.asarray(gaia_data['dec']),
-                                 source = np.asarray(gaia_data['source']),
-                                 x = np.asarray(gaia_data['x']),
-                                 y = np.asarray(gaia_data['y']),
-                                 Gmag = np.asarray(gaia_data['Gmag']),
-                                 distance = distances)
-                    #compute p-values for fit location corresponding to star locations
-                    #by interpolating a sampled cumulative integrated density.
-
-                    #sample based on rough scale of error model.
-                    avgscale = np.nanmean(np.sqrt(self.error_model.covar))
-
-                    #sample wide enough, and finely enough
-                    lims = avgscale*10
-                    l = avgscale/10.
-                    x = np.arange(-lims, lims+l, l)
-                    y = np.arange(-lims, lims+l, l)
-                    X, Y = np.meshgrid(x, y)
-                    XX = np.array([X.ravel(), Y.ravel()]).T
-                    Z = self.error_model.logL(XX + self.location)
-                    Z = Z.reshape(X.shape)
-                    #sorting lnL high to low and matching to cumulative sum,
-                    #then interpolate to desired value.
-                    sortlnL = np.sort(Z.flatten())[::-1]
-                    cumsum = np.cumsum(np.exp(sortlnL)*l**2)
-                    #interpolator
-                    getpvalue = interp1d(sortlnL,1-cumsum, bounds_error=False, fill_value = (0,1))
-                    stars['pvalue'] = getpvalue(self.logL(stars[['x','y']].values))
-
-                    #compute relativd likelihoods of gaia sources
-                    L = 10**self.logL(np.vstack((gaia_data["x"],gaia_data["y"])).T) #likelihoods
-                    L /= np.sum(L) #normalized
-                    stars["likelihood"] = L
-                    starlist = pd.DataFrame.from_dict(stars)
-                    self.stars = starlist.sort_values(by=[r'likelihood'],ascending = False)
 
 
         fh = frequency_heatmap(self.tpf,self.heats,self.heats_error,self.frequency_list,self.gaiadata,self.method)
-        fh.location()
+        fh.locate()
 
         self.location = [fh.x,fh.y]
         self.location_skycoord = self.tpf.wcs.all_pix2world([self.location], 0)[0]
@@ -774,8 +729,51 @@ class Localize:
         self.error_model = fh.error_model
         self.result = fh.result
 
+        def star_list(self):
+            gaia_data = self.gaiadata
+            no_gaia_data_message = ValueError('No gaia data initialized in PixelMapPeriodogram class')
+            if gaia_data ==None :
+                starlist = None
 
+            else:
+                distances = np.square(self.x-gaia_data['x'])+np.square(self.y-gaia_data['y'])
+                #closest_star_mask = np.where(np.square(self.x-gaia_data['x'])+np.square(self.y-gaia_data['y'])==(np.square(self.x-gaia_data['x'])+np.square(self.y-gaia_data['y'])).min())
+                stars = dict(ra = np.asarray(gaia_data['ra']),
+                             dec = np.asarray(gaia_data['dec']),
+                             source = np.asarray(gaia_data['source']),
+                             x = np.asarray(gaia_data['x']),
+                             y = np.asarray(gaia_data['y']),
+                             Gmag = np.asarray(gaia_data['Gmag']),
+                             distance = distances)
+                #compute p-values for fit location corresponding to star locations
+                #by interpolating a sampled cumulative integrated density.
 
+                #sample based on rough scale of error model.
+                avgscale = np.nanmean(np.sqrt(self.error_model.covar))
+
+                #sample wide enough, and finely enough
+                lims = avgscale*10
+                l = avgscale/10.
+                x = np.arange(-lims, lims+l, l)
+                y = np.arange(-lims, lims+l, l)
+                X, Y = np.meshgrid(x, y)
+                XX = np.array([X.ravel(), Y.ravel()]).T
+                Z = self.error_model.logL(XX + self.location)
+                Z = Z.reshape(X.shape)
+                #sorting lnL high to low and matching to cumulative sum,
+                #then interpolate to desired value.
+                sortlnL = np.sort(Z.flatten())[::-1]
+                cumsum = np.cumsum(np.exp(sortlnL)*l**2)
+                #interpolator
+                getpvalue = interp1d(sortlnL,1-cumsum, bounds_error=False, fill_value = (0,1))
+                stars['pvalue'] = getpvalue(self.logL(stars[['x','y']].values))
+
+                #compute relativd likelihoods of gaia sources
+                L = 10**self.logL(np.vstack((gaia_data["x"],gaia_data["y"])).T) #likelihoods
+                L /= np.sum(L) #normalized
+                stars["likelihood"] = L
+                starlist = pd.DataFrame.from_dict(stars)
+                self.stars = starlist.sort_values(by=[r'likelihood'],ascending = False)
 
         if (self.gaiadata is not None):
             fh.star_list()

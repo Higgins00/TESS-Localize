@@ -6,3 +6,4 @@ matplotlib>=3.4
 astropy>=4.2.1
 TESS_PRF>=0.1.3
 pygmmis
+scipy

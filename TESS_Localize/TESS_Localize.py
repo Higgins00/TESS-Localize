@@ -846,8 +846,14 @@ class Localize:
         freq = self.frequency_list
         phase = self.final_phases
         fit = 0
+        
+        prf = PRF.TESS_PRF(cam = self.tpf.camera, ccd = self.tpf.ccd,
+                           sector = self.tpf.sector, colnum = self.tpf.column+self.tpf.pipeline_mask.shape[0]/2.,
+                           rownum = self.tpf.row+self.tpf.pipeline_mask.shape[1]/2.)
+        
         for i in range(len(self.frequency_list)):
-            fit += self.result.params[self.result.var_names[:-2][i]].value*np.sin(2*np.pi*freq[i]*times + phase[i])
+            model = prf.locate(self.location[0],self.location[1], self.tpf.shape[1:])*self.result.params[self.result.var_names[:-2][i]].value
+            fit += np.sum(model[lightcurve_aperture])*np.sin(2*np.pi*freq[i]*times + phase[i])
 
         plt.scatter(times,flux,s=.5,label='Lightcurve')
         plt.plot(times,fit+np.mean(flux),c='r',linestyle='-',lw=1,alpha=.7,label = 'Lightcurve Fit')
@@ -867,7 +873,7 @@ class Localize:
         Parameters
         ----------
         frequencylist_index: int
-        method: 'amp', 'snr', 'errors', 'model'
+        method: 'amp', 'snr', 'errors', 'model', 'residual'
         save: str, or None
             'filename.png' if you want to save the png of the plot
         figuresize: size of plot
@@ -884,9 +890,16 @@ class Localize:
             prf = PRF.TESS_PRF(cam = self.tpf.camera, ccd = self.tpf.ccd,
                                sector = self.tpf.sector, colnum = self.tpf.column+self.tpf.pipeline_mask.shape[0]/2.,
                                rownum = self.tpf.row+self.tpf.pipeline_mask.shape[1]/2.)
-            model = prf.locate(self.location[0],self.location[1], self.tpf.shape[1:])
+            model = prf.locate(self.location[0],self.location[1], self.tpf.shape[1:])*self.result.params[self.result.var_names[:-2][frequencylist_index]].value
             plt.imshow(model,origin='lower')
-
+        elif (method=='residual'):
+            prf = PRF.TESS_PRF(cam = self.tpf.camera, ccd = self.tpf.ccd,
+                               sector = self.tpf.sector, colnum = self.tpf.column+self.tpf.pipeline_mask.shape[0]/2.,
+                               rownum = self.tpf.row+self.tpf.pipeline_mask.shape[1]/2.)
+            model = prf.locate(self.location[0],self.location[1], self.tpf.shape[1:])
+            
+            res = self.heats[frequencylist_index].reshape(self.tpf.shape[1:]) - model*self.result.params[self.result.var_names[:-2][frequencylist_index]].value
+            plt.imshow(res,origin='lower')
         if (self.gaiadata != None):
             plt.scatter(self.gaiadata['x'],self.gaiadata['y'],s=self.gaiadata['size']*5,c='white',alpha=.6)
             plt.scatter(self.location[0],self.location[1],marker='X',c ='black',s=70)

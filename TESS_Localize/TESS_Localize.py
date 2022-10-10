@@ -761,9 +761,9 @@ class Localize:
                     #compute relative likelihoods of competing gaia sources
                     L = np.exp(lnL)
                     L /= np.sum(L) #normalized
-                    stars["likelihood"] = L
+                    stars["relative likelihood"] = L
                     starlist = pd.DataFrame.from_dict(stars)
-                    self.stars = starlist.sort_values(by=[r'likelihood'],ascending = False)
+                    self.stars = starlist.sort_values(by=[r'relative likelihood'],ascending = False)
 
 
         fh = frequency_heatmap(self.tpf,self.heats,self.heats_error,self.frequency_list,self.gaiadata,self.method)
@@ -868,7 +868,7 @@ class Localize:
         if save != None:
             plt.savefig(save)
 
-    def plot(self,frequencylist_index = 0,method = 'amp',save = None,figuresize = (10,10)):
+    def plot(self,frequencylist_index = 0,method = 'amp',save = None,figuresize = (10,10),colorbar=True):
         """Plot the amplitude heatmap, snr, errors, or the fit model.
         Parameters
         ----------
@@ -906,5 +906,9 @@ class Localize:
 
         plt.xlim(-.5,self.aperture.shape[1]-1+.5)
         plt.ylim(-.5,self.aperture.shape[0]-1+.5)
+        if colorbar == True:
+            plt.colorbar()
         if save != None:
             plt.savefig(save)
+        
+            

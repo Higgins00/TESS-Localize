@@ -900,14 +900,14 @@ class Localize:
             
             res = self.heats[frequencylist_index].reshape(self.tpf.shape[1:]) - model*self.result.params[self.result.var_names[:-2][frequencylist_index]].value
             plt.imshow(res,origin='lower')
+        if colorbar == True:
+            plt.colorbar()
         if (self.gaiadata != None):
             plt.scatter(self.gaiadata['x'],self.gaiadata['y'],s=self.gaiadata['size']*5,c='white',alpha=.6)
             plt.scatter(self.location[0],self.location[1],marker='X',c ='black',s=70)
 
         plt.xlim(-.5,self.aperture.shape[1]-1+.5)
         plt.ylim(-.5,self.aperture.shape[0]-1+.5)
-        if colorbar == True:
-            plt.colorbar()
         if save != None:
             plt.savefig(save)
         

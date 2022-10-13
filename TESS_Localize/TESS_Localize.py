@@ -452,11 +452,11 @@ class Localize:
 
             final_phases = [result.best_values['f{0:d}phase'.format(j)] for j in np.arange(len(frequency_list))]
 
+            final_phases_errors = [result.best_values['f{0:d}phase'.format(j)].stderr for j in np.arange(len(frequency_list))]
+            return final_phases, final_phases_errors
 
-            return final_phases
-
-        self.final_phases = Obtain_Final_Phase(self.tpf,self.corrected_lc,self.frequency_list,self.initial_phases)
-
+        self.final_phases, self.final_phases_errors = Obtain_Final_Phase(self.tpf,self.corrected_lc,self.frequency_list,self.initial_phases)
+         
         def Obtain_Final_Fit(tpf,corrected_lc,frequency_list,final_phases):
 
             flux = corrected_lc.flux.value

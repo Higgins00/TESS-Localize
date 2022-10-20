@@ -56,7 +56,7 @@ class PCA:
     """
 
     def __init__(self, targetpixelfile,
-                 frequencies=[], frequnit=u.uHz, principal_components = 5,
+                 frequencies, frequnit=u.uHz, principal_components = 5,
                  aperture=None):
 
         self.tpf = targetpixelfile
@@ -165,14 +165,14 @@ class Localize:
     Parameters
     ----------
     targetpixelfile : targetpixelfile object
-    gaia : Boolean
-        True if internet access is available and user wants to display gaia information; User should enter False otherwise.
-    magnitude_limit: float
-        Lower limit of gaia magnitudes to search for.
     frequencies: list
         List of frequencies desired to localize the source location for.
     frequnit: astropy.units.unit
         Units of the frequencies in frequencies list.
+    gaia : Boolean
+        True if internet access is available and user wants to display gaia information; User should enter False otherwise.
+    magnitude_limit: float
+        Lower limit of gaia magnitudes to search for.
     principal_components: int, str
         Number of components used in PCA for TPF lightcurve, or 'auto' for automatic determination.
     aperture: 2D Boolean array, or 'auto'
@@ -223,8 +223,8 @@ class Localize:
         Defaults to Gaia DR3.
     """
 
-    def __init__(self, targetpixelfile, gaia=True, magnitude_limit=18,
-                 frequencies=[], frequnit=u.uHz, principal_components = 'auto',
+    def __init__(self, targetpixelfile, frequencies=[], frequnit=u.uHz,
+                 gaia=True, magnitude_limit=18, principal_components = 'auto',
                  aperture=None, method = 'PRF', sigma=None, mask=None,
                  gaia_catalog='I/355/gaiadr3', **kwargs):
 
@@ -800,7 +800,9 @@ class Localize:
             warnings.warn('Frequencies used may not all belong to the same source and provided fit could be unreliable')
         if ((self.location[0]<0) and (self.location[0]>self.tpf.shape[1])) or ((self.location[1]<0) and (self.location[1]>self.tpf.shape[2])):
             warnings.warn('Source fit to a location outside the TPF, refitting using a TPF centered around source is recommended')
-
+        if (np.asarray(self.final_phases_errors)>.1).any():
+            warnings.warn('Phase uncertainties >.1 suggest some signals may be too weak in the aperture to be localized.')
+        
     def pca(self):
         if self.principal_components==0:
             pass

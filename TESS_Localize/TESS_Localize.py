@@ -515,7 +515,7 @@ class Localize:
                 if len(lightcurve[np.isfinite(lightcurve['flux']*lightcurve['flux_err'])])!=0:
 
 
-                    if principal_components !=0:
+                    if self.principal_components !=0:
                         rcc = lk.RegressionCorrector(lightcurve)
                         lc = rcc.correct(self.dm.append_constant())
                     else:

@@ -285,15 +285,15 @@ class Localize:
             quality_mask = [np.isfinite(raw_lc1['flux']*raw_lc1['flux_err'])]
             if self.principal_components !=0:
                 dm = lk.DesignMatrix(self.tpf.flux[:,~(self.aperture|self.mask)][np.isfinite(raw_lc1['flux']*raw_lc1['flux_err']),:][np.where(raw_lc1[quality_mask[0]].quality ==0)[0],:], name='regressors').pca(self.principal_components)
-                raw_lc = raw_lc1[self.quality_mask[0]]
-                raw_lc = raw_lc[np.where(self.raw_lc1[self.quality_mask[0]].quality ==0)]
+                raw_lc = raw_lc1[quality_mask[0]]
+                raw_lc = raw_lc[np.where(self.raw_lc1[quality_mask[0]].quality ==0)]
 
                 rc = lk.RegressionCorrector(raw_lc)
                 corrected_lc = rc.correct(dm.append_constant())
             else:
-                raw_lc = self.raw_lc1[self.quality_mask[0]]
-                raw_lc = self.raw_lc[np.where(self.raw_lc1[self.quality_mask[0]].quality ==0)]
-                corrected_lc = self.raw_lc
+                raw_lc = raw_lc1[quality_mask[0]]
+                raw_lc = raw_lc[np.where(raw_lc1[quality_mask[0]].quality ==0)]
+                corrected_lc = raw_lc
 
 
 

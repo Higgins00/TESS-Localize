@@ -711,7 +711,7 @@ class Localize:
                 error_ext = pygmmis.GMM(K=2, D=2)
                 error_ext.load(_error_fname)
                 #Combined error model
-                self.error_model = copy(error_ext) #extrinsic error
+                self.error_model = copy.copy(error_ext) #extrinsic error
                 self.error_model.covar += self.result.covar[-2:,-2:] #intrinsic error
                 self.error_model.mean += [self.x,self.y] #Locate relative to best-fit position
                 self.error_model.amp /= np.sum(self.error_model.amp) #Normalize amplitudes

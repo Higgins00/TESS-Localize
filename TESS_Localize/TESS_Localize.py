@@ -281,24 +281,24 @@ class Localize:
 
         if principal_components == 'auto':
             self.principal_components = 5
-            self.raw_lc1 = self.tpf.to_lightcurve(aperture_mask=self.aperture)
-            self.quality_mask = [np.isfinite(self.raw_lc1['flux']*self.raw_lc1['flux_err'])]
+            raw_lc1 = self.tpf.to_lightcurve(aperture_mask=self.aperture)
+            quality_mask = [np.isfinite(raw_lc1['flux']*raw_lc1['flux_err'])]
             if self.principal_components !=0:
-                self.dm = lk.DesignMatrix(self.tpf.flux[:,~(self.aperture|self.mask)][np.isfinite(self.raw_lc1['flux']*self.raw_lc1['flux_err']),:][np.where(self.raw_lc1[self.quality_mask[0]].quality ==0)[0],:], name='regressors').pca(self.principal_components)
-                self.raw_lc = self.raw_lc1[self.quality_mask[0]]
-                self.raw_lc = self.raw_lc[np.where(self.raw_lc1[self.quality_mask[0]].quality ==0)]
+                dm = lk.DesignMatrix(self.tpf.flux[:,~(self.aperture|self.mask)][np.isfinite(raw_lc1['flux']*raw_lc1['flux_err']),:][np.where(raw_lc1[quality_mask[0]].quality ==0)[0],:], name='regressors').pca(self.principal_components)
+                raw_lc = raw_lc1[self.quality_mask[0]]
+                raw_lc = raw_lc[np.where(self.raw_lc1[self.quality_mask[0]].quality ==0)]
 
-                rc = lk.RegressionCorrector(self.raw_lc)
-                self.corrected_lc = rc.correct(self.dm.append_constant())
+                rc = lk.RegressionCorrector(raw_lc)
+                corrected_lc = rc.correct(dm.append_constant())
             else:
-                self.raw_lc = self.raw_lc1[self.quality_mask[0]]
-                self.raw_lc = self.raw_lc[np.where(self.raw_lc1[self.quality_mask[0]].quality ==0)]
-                self.corrected_lc = self.raw_lc
+                raw_lc = self.raw_lc1[self.quality_mask[0]]
+                raw_lc = self.raw_lc[np.where(self.raw_lc1[self.quality_mask[0]].quality ==0)]
+                corrected_lc = self.raw_lc
 
 
 
-            pgs = [lk.LightCurve(time = self.tpf.time.value[self.quality_mask[0]][np.where(self.raw_lc1[self.quality_mask[0]].quality ==0)],flux =self.dm.values.T[i]).to_periodogram(frequency = np.append([0.0001],self.frequency_list),ls_method='slow') for i in np.arange(0,len(self.dm.values.T))]
-            pg2 = [lk.LightCurve(time = self.tpf.time.value[self.quality_mask[0]][np.where(self.raw_lc1[self.quality_mask[0]].quality ==0)],flux =self.dm.values.T[i]).to_periodogram() for i in np.arange(0,len(self.dm.values.T))]
+            pgs = [lk.LightCurve(time = self.tpf.time.value[quality_mask[0]][np.where(raw_lc1[quality_mask[0]].quality ==0)],flux =dm.values.T[i]).to_periodogram(frequency = np.append([0.0001],self.frequency_list),ls_method='slow') for i in np.arange(0,len(dm.values.T))]
+            pg2 = [lk.LightCurve(time = self.tpf.time.value[quality_mask[0]][np.where(raw_lc1[quality_mask[0]].quality ==0)],flux =dm.values.T[i]).to_periodogram() for i in np.arange(0,len(dm.values.T))]
             fails = []
             for i in np.arange(0,self.principal_components):
                 medians = np.empty(len(self.frequency_list))
@@ -329,8 +329,8 @@ class Localize:
             self.raw_lc = self.raw_lc1[self.quality_mask[0]]
             self.raw_lc = self.raw_lc[np.where(self.raw_lc1[self.quality_mask[0]].quality ==0)]
 
-            rc = lk.RegressionCorrector(self.raw_lc)
-            self.corrected_lc = rc.correct(self.dm.append_constant())
+            self.rc = lk.RegressionCorrector(self.raw_lc)
+            self.corrected_lc = self.rc.correct(self.dm.append_constant())
         else:
             self.raw_lc = self.raw_lc1[self.quality_mask[0]]
             self.raw_lc = self.raw_lc[np.where(self.raw_lc1[self.quality_mask[0]].quality ==0)]

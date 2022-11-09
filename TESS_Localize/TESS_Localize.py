@@ -2,7 +2,7 @@
 
 #from __future__ import division, print_function
 import warnings
-from copy import copy
+import copy
 import numpy as np
 from astropy.coordinates import SkyCoord, Angle
 from astropy.time import Time
@@ -59,7 +59,7 @@ class PCA:
                  frequencies, frequnit=u.uHz, principal_components = 5,
                  aperture=None):
 
-        self.tpf = targetpixelfile
+        self.tpf = copy.deepcopy(targetpixelfile)
         #Defining an aperture that will be used in plotting and making empty 2-d arrays of the correct size for masks
         self.aperture = aperture
         self.principal_components = principal_components
@@ -228,7 +228,7 @@ class Localize:
                  aperture=None, method = 'PRF', sigma=None, mask=None,
                  gaia_catalog='I/355/gaiadr3', **kwargs):
 
-        self.tpf = targetpixelfile
+        self.tpf = copy.deepcopy(targetpixelfile)
         self.method = method
         #Defining an aperture that will be used in plotting and making empty 2-d arrays of the correct size for masks
         self.aperture = aperture
@@ -313,7 +313,7 @@ class Localize:
                 mini = np.min(np.array(fails))-1
 
             self.principal_components = mini
-
+            self.tpf = copy.deepcopy(targetpixelfile)
         if self.aperture is None:
             self.aperture = targetpixelfile.pipeline_mask
             if targetpixelfile.pipeline_mask.any() == False:

@@ -90,9 +90,9 @@ class PCA:
                             lightcurve = tpf.to_lightcurve(aperture_mask=mask)
                             lightcurve = lightcurve[np.isfinite(lightcurve['flux']*lightcurve['flux_err'])]
                             lightcurve = lightcurve[np.where(lightcurve[np.isfinite(lightcurve['flux']*lightcurve['flux_err'])].quality==0)]
-                            pg = lightcurve.to_periodogram(frequency = frequencies,freq_unit = frequnits,ls_method='slow')
+                            pg = lightcurve.to_periodogram(frequency = np.append([0.0001],frequencies),freq_unit = frequnits,ls_method='slow')
 
-                            heat[i][j] = np.sum(pg.power.value**2)**(1/2)
+                            heat[i][j] = np.sum(pg.power.value[1:]**2)**(1/2)
                     return heat>np.mean(heat)+2*np.std(heat)
                 self.aperture = frequency_aperture(tpf=self.tpf,frequencies = frequencies, frequnits = frequnit)
 
@@ -264,9 +264,9 @@ class Localize:
                     lightcurve = lightcurve[np.isfinite(lightcurve['flux']*lightcurve['flux_err'])]
                     if len(lightcurve)!=0:
                         lightcurve = lightcurve[np.where(lightcurve[np.isfinite(lightcurve['flux']*lightcurve['flux_err'])].quality==0)]
-                        pg = lightcurve.to_periodogram(frequency = frequencies,freq_unit = frequnits,ls_method='slow')
+                        pg = lightcurve.to_periodogram(frequency = np.append([0.0001],frequencies),freq_unit = frequnits,ls_method='slow')
 
-                        heat[i][j] = np.sum(pg.power.value**2)**(1/2)
+                        heat[i][j] = np.sum(pg.power.value[1:]**2)**(1/2)
                     else:
                         heat[i][j]=np.nan
             return heat>np.mean(heat)+2*np.std(heat)
@@ -737,7 +737,7 @@ class Localize:
                     #by interpolating a sampled cumulative integrated density.
 
                     #sample based on rough scale of error model.
-                    avgscale = np.nanmean(np.sqrt(self.error_model.covar))
+                    avgscale = np.nanmean(np.sqrt(np.diag(self.error_model.covar)))
 
                     #sample wide enough, and finely enough
                     lims = avgscale*10

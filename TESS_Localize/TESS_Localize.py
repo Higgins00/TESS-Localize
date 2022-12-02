@@ -456,7 +456,7 @@ class Localize:
             return final_phases, final_phases_errors
 
         self.final_phases, self.final_phases_errors = Obtain_Final_Phase(self.tpf,self.corrected_lc,self.frequency_list,self.initial_phases)
-         
+
         def Obtain_Final_Fit(tpf,corrected_lc,frequency_list,final_phases):
 
             flux = corrected_lc.flux.value
@@ -736,8 +736,8 @@ class Localize:
                     #compute p-values for fit location corresponding to star locations
                     #by interpolating a sampled cumulative integrated density.
 
-                    #sample based on rough scale of error model.
-                    avgscale = np.nanmean(np.sqrt(np.diag(self.error_model.covar)))
+                    #sample based on rough scale of error model (2 GMM components)
+                    avgscale = np.nanmean([np.sqrt(np.diag(covar)) for covar in self.error_model.covar])
 
                     #sample wide enough, and finely enough
                     lims = avgscale*10
@@ -802,7 +802,7 @@ class Localize:
             warnings.warn('Source fit to a location outside the TPF, refitting using a TPF centered around source is recommended')
         if (np.asarray(self.final_phases_errors)>.1).any():
             warnings.warn('Phase uncertainties >.1 suggest some signals may be too weak in the aperture to be localized.')
-        
+
     def pca(self):
         if self.principal_components==0:
             pass
@@ -848,11 +848,11 @@ class Localize:
         freq = self.frequency_list
         phase = self.final_phases
         fit = 0
-        
+
         prf = PRF.TESS_PRF(cam = self.tpf.camera, ccd = self.tpf.ccd,
                            sector = self.tpf.sector, colnum = self.tpf.column+self.tpf.pipeline_mask.shape[0]/2.,
                            rownum = self.tpf.row+self.tpf.pipeline_mask.shape[1]/2.)
-        
+
         for i in range(len(self.frequency_list)):
             model = prf.locate(self.location[0],self.location[1], self.tpf.shape[1:])*self.result.params[self.result.var_names[:-2][i]].value
             fit += np.sum(model[lightcurve_aperture])*np.sin(2*np.pi*freq[i]*times + phase[i])
@@ -899,7 +899,7 @@ class Localize:
                                sector = self.tpf.sector, colnum = self.tpf.column+self.tpf.pipeline_mask.shape[0]/2.,
                                rownum = self.tpf.row+self.tpf.pipeline_mask.shape[1]/2.)
             model = prf.locate(self.location[0],self.location[1], self.tpf.shape[1:])
-            
+
             res = self.heats[frequencylist_index].reshape(self.tpf.shape[1:]) - model*self.result.params[self.result.var_names[:-2][frequencylist_index]].value
             plt.imshow(res,origin='lower')
         if colorbar == True:
@@ -912,5 +912,3 @@ class Localize:
         plt.ylim(-.5,self.aperture.shape[0]-1+.5)
         if save != None:
             plt.savefig(save)
-        
-            

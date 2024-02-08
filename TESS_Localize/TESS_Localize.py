@@ -791,7 +791,7 @@ class Localize:
         if (self.gaiadata != None):
             plt.scatter(self.gaiadata['x'],self.gaiadata['y'],s=self.gaiadata['size']*5,c='white',alpha=.6)
             plt.scatter(self.location[0],self.location[1],marker='X',c='black',s=70)
-            print(self.starfit)
+            print(self.starfit.head(5)
         plt.xlim(-.5,self.aperture.shape[1]-1+.5)
         plt.ylim(-.5,self.aperture.shape[0]-1+.5)
         report_fit(self.result)

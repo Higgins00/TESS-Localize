@@ -96,7 +96,7 @@ class PCA:
                     return heat>np.mean(heat)+2*np.std(heat)
                 self.aperture = frequency_aperture(tpf=self.tpf,frequencies = frequencies, frequnits = frequnit)
 
-        if aperture =='auto':
+        if str(aperture) =='auto':
             self.aperture = frequency_aperture(tpf=self.tpf,frequencies = frequencies, frequnits = frequnit)
 
 
@@ -276,7 +276,7 @@ class Localize:
                 #will add a flag here if no aperture
                 self.aperture = frequency_aperture(tpf=self.tpf,frequencies = frequencies, frequnits = frequnit)
 
-        if aperture =='auto':
+        if str(aperture) =='auto':
             self.aperture = frequency_aperture(tpf=self.tpf,frequencies = frequencies, frequnits = frequnit)
 
         if principal_components == 'auto':

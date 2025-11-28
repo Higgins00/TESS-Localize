@@ -9,7 +9,7 @@ See the paper describing the methodology behind this software [on ADS](https://u
 
 To install use 
 
-```pip install TESS_Localize```
+```pip install tess_localize```
 
 Or clone this repository and run 
 ```bash

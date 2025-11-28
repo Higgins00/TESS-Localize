@@ -724,7 +724,7 @@ class Localize:
                     starlist = None
 
                 else:
-                    distances = np.square(self.x-gaia_data['x'])+np.square(self.y-gaia_data['y'])
+                    distances = np.sqrt(np.square(self.x-gaia_data['x'])+np.square(self.y-gaia_data['y']))
                     #closest_star_mask = np.where(np.square(self.x-gaia_data['x'])+np.square(self.y-gaia_data['y'])==(np.square(self.x-gaia_data['x'])+np.square(self.y-gaia_data['y'])).min())
                     stars = dict(ra = np.asarray(gaia_data['ra']),
                                  dec = np.asarray(gaia_data['dec']),
